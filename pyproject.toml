@@ -1,0 +1,8 @@
+[project]
+name = "school-management-system"
+version = "0.1.0"
+description = "Add your description here"
+requires-python = ">=3.10"
+dependencies = [
+    "sqlalchemy>=2.0.51",
+]
