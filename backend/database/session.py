@@ -1,15 +1,43 @@
-import os
 from sqlalchemy import create_engine
-from sqlalchemy.orm import declarative_base, sessionmaker
+from sqlalchemy.ext.declarative import declarative_base
+from sqlalchemy.orm import sessionmaker
+import os
+from dotenv import load_dotenv
 
-# 1. Look for a DATABASE_URL environment variable. Default to SQLite if not found.
-DATABASE_URL = os.getenv("DATABASE_URL", "sqlite:///./school.db")
+# Load environment variables
+load_dotenv()
 
-# 2. Only apply "check_same_thread" if we are actually using SQLite
-if DATABASE_URL.startswith("sqlite"):
-    engine = create_engine(DATABASE_URL, connect_args={"check_same_thread": False})
-else:
-    engine = create_engine(DATABASE_URL)
+# Database URL - uses SQLite by default, can be changed via .env
+DATABASE_URL = os.getenv("DATABASE_URL", "sqlite:///./school_payment.db")
 
-SessionLocal = sessionmaker(bind=engine, autocommit=False, autoflush=False)
+# Create database engine
+# For SQLite, we need check_same_thread=False to allow multiple threads
+engine = create_engine(
+    DATABASE_URL,
+    connect_args={"check_same_thread": False} if "sqlite" in DATABASE_URL else {}
+)
+
+# Create session factory
+SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
+
+# Base class for models
 Base = declarative_base()
+
+# Dependency to get database session
+def get_db():
+    """Get database session for API endpoints"""
+    db = SessionLocal()
+    try:
+        yield db
+    finally:
+        db.close()
+
+# Function to create tables
+def create_tables():
+    """Create all database tables"""
+    Base.metadata.create_all(bind=engine)
+
+# Function to drop all tables (use with caution!)
+def drop_tables():
+    """Drop all database tables (for testing only)"""
+    Base.metadata.drop_all(bind=engine)
