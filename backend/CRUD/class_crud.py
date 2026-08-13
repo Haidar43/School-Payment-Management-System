@@ -1,6 +1,6 @@
 from sqlalchemy.orm import Session
 from sqlalchemy import func
-from ..database.models import Class, FeeStructure, Enrollment, Payment, Session
+from ..database.models import Class, FeeStructure, Enrollment, Payment, AcademicSession
 from ..schemas.class_schema import ClassCreate, ClassUpdate
 from typing import Optional, List
 
@@ -41,7 +41,7 @@ def get_class_with_stats(db: Session, class_id: int, session_id: Optional[int] =
 
     # If no session_id provided, get current session
     if not session_id:
-        current_session = db.query(Session).filter(Session.is_current == True).first()
+        current_session = db.query(AcademicSession).filter(AcademicSession.is_current == True).first()
         session_id = current_session.id if current_session else None
 
     result = {

@@ -5,7 +5,7 @@ from datetime import timedelta
 
 from ..database.session import get_db
 from ..database.models import Admin, Parent
-from ..schemas.admin import AdminLogin, AdminResponse
+from ..schemas.admin import AdminLogin, AdminResponse, AdminCreate
 from ..schemas.parent import ParentLogin
 from ..utils.auth import (
     create_access_token,
@@ -14,13 +14,66 @@ from ..utils.auth import (
     logout,
     security,
     get_current_admin,
-    get_current_parent
+    get_current_parent, hash_password
 )
-from ..crud.admin import get_admin_by_email
+from ..crud.admin import get_admin_by_email, get_admin_by_phone
 from ..crud.parent import get_parent_by_phone
 
 router = APIRouter(tags=["Public"])
 
+# ============ CHECK IF ADMIN EXISTS ============
+
+@router.get("/setup/check")
+def check_admin_exists(db: Session = Depends(get_db)):
+    """Check if any admin exists"""
+    admin_count = db.query(Admin).count()
+    return {
+        "admin_exists": admin_count > 0,
+        "count": admin_count,
+        "needs_setup": admin_count == 0
+    }
+
+
+# ============ CREATE FIRST ADMIN (Only if no admin exists) ============
+
+@router.post("/setup/create-admin", response_model=AdminResponse, status_code=status.HTTP_201_CREATED)
+def create_first_admin(
+        admin_data: AdminCreate,
+        db: Session = Depends(get_db)
+):
+    """Create the first admin (only works if no admin exists)"""
+
+    # Check if any admin exists
+    admin_count = db.query(Admin).count()
+    if admin_count > 0:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Admin already exists. Use login endpoint."
+        )
+
+    # Check if email exists
+    if get_admin_by_email(db, admin_data.email):
+        raise HTTPException(status_code=400, detail="Email already registered")
+
+    # Check if phone exists
+    if get_admin_by_phone(db, admin_data.phone):
+        raise HTTPException(status_code=400, detail="Phone already registered")
+
+    # Create admin
+    hashed_password = hash_password(admin_data.password)
+    db_admin = Admin(
+        first_name=admin_data.first_name,
+        last_name=admin_data.last_name,
+        phone=admin_data.phone,
+        email=admin_data.email,
+        password=hashed_password
+    )
+
+    db.add(db_admin)
+    db.commit()
+    db.refresh(db_admin)
+
+    return db_admin
 
 # ============ ADMIN LOGIN ============
 

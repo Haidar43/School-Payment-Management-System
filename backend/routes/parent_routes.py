@@ -2,16 +2,16 @@ from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
 from typing import List, Optional
 
-from database.session import get_db
-from database.models import Parent, Student
-from schemas.parent import ParentUpdate
-from schemas.student import StudentResponse
+from ..database.session import get_db
+from ..database.models import Parent, Student
+from ..schemas.parent import ParentUpdate
+from ..schemas.student import StudentResponse
 
-from utils.auth import get_current_parent
-from crud.parent import get_parent_by_id, update_parent, get_parent_with_children
-from crud.student import get_student_by_id, get_student_with_payment_summary
-from crud.payment import get_payments_by_student
-from crud.dashboard import get_parent_dashboard
+from ..utils.auth import get_current_parent
+from ..crud.parent import get_parent_by_id, update_parent, get_parent_with_children
+from ..crud.student import get_student_by_id, get_student_with_payment_summary
+from ..crud.payment import get_payments_by_student
+from ..crud.dashboard import get_parent_dashboard
 
 router = APIRouter(prefix="/api/parent", tags=["Parent"])
 
@@ -173,5 +173,5 @@ def get_child_payments(
 
 def get_payments_filtered_by_parent(db: Session, parent_id: int, skip: int = 0, limit: int = 50):
     """Get payments for a parent's children"""
-    from crud.payment import get_payments_filtered
+    from ..crud.payment import get_payments_filtered
     return get_payments_filtered(db, parent_id=parent_id, skip=skip, limit=limit)

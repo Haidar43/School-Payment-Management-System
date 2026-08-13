@@ -1,7 +1,7 @@
 from sqlalchemy.orm import Session
 from sqlalchemy import func, or_
-from database.models import Student, Parent, Enrollment, Payment, FeeStructure, Session
-from schemas.student import StudentCreate, StudentUpdate
+from ..database.models import Student, Parent, Enrollment, Payment, FeeStructure, AcademicSession, Class
+from ..schemas.student import StudentCreate, StudentUpdate
 from typing import Optional, List
 
 
@@ -58,7 +58,7 @@ def get_student_with_payment_summary(db: Session, student_id: int, session_id: O
 
     # If no session_id provided, get current session
     if not session_id:
-        current_session = db.query(Session).filter(Session.is_current == True).first()
+        current_session = db.query(AcademicSession).filter(AcademicSession.is_current == True).first()
         session_id = current_session.id if current_session else None
 
     result = {
@@ -152,3 +152,87 @@ def delete_student(db: Session, student_id: int) -> Optional[Student]:
     db.delete(db_student)
     db.commit()
     return db_student
+
+
+def promote_student(
+    db: Session,
+    student_id: int,
+    new_class_id: int,
+    new_session_id: Optional[int] = None
+) -> Optional[dict]:
+    """Move a student to a class in the selected or current session."""
+    student = get_student_by_id(db, student_id)
+    if not student:
+        return None
+
+    target_class = db.query(Class).filter(Class.id == new_class_id).first()
+    if not target_class:
+        return {"error": "Class not found"}
+
+    if new_session_id is None:
+        target_session = db.query(AcademicSession).filter(AcademicSession.is_current == True).first()
+        if not target_session:
+            return {"error": "No current session set"}
+    else:
+        target_session = db.query(AcademicSession).filter(AcademicSession.id == new_session_id).first()
+        if not target_session:
+            return {"error": "Session not found"}
+
+    enrollment = db.query(Enrollment).filter(
+        Enrollment.student_id == student_id,
+        Enrollment.session_id == target_session.id
+    ).first()
+
+    if enrollment:
+        enrollment.class_id = new_class_id
+        enrollment.status = "ACTIVE"
+    else:
+        enrollment = Enrollment(
+            student_id=student_id,
+            class_id=new_class_id,
+            session_id=target_session.id,
+            status="ACTIVE"
+        )
+        db.add(enrollment)
+
+    db.commit()
+    db.refresh(enrollment)
+
+    return {
+        "message": "Student promoted successfully",
+        "student": student,
+        "enrollment": enrollment,
+        "class": target_class,
+        "session": target_session
+    }
+
+
+def get_all_students_with_details(db: Session, skip: int = 0, limit: int = 100, session_id: Optional[int] = None) -> \
+List[dict]:
+    """Get all students with payment summary for a session"""
+    students = get_all_students(db, skip, limit)
+
+    if not session_id:
+        current_session = db.query(Session).filter(Session.is_current == True).first()
+        session_id = current_session.id if current_session else None
+
+    result = []
+    for student in students:
+        student_data = get_student_with_payment_summary(db, student.id, session_id)
+        if student_data:
+            result.append(student_data)
+        else:
+            result.append({
+                "student": student,
+                "parent": student.parent,
+                "current_enrollment": None,
+                "payment_summary": {
+                    "fee": 0,
+                    "paid": 0,
+                    "balance": 0,
+                    "status": "NOT_ENROLLED"
+                },
+                "payment_history": []
+            })
+
+    return result

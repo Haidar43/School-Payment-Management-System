@@ -1,6 +1,6 @@
 from sqlalchemy.orm import Session
 from sqlalchemy import func, and_
-from ..database.models import Session, Class, Enrollment, Student, Payment, FeeStructure
+from ..database.models import AcademicSession, Class, Enrollment, Student, Payment, FeeStructure
 from typing import Optional, List, Dict
 from datetime import date, datetime, timedelta
 
@@ -15,7 +15,7 @@ def get_payment_report(
     """Get comprehensive payment report"""
 
     if not session_id:
-        current_session = db.query(Session).filter(Session.is_current == True).first()
+        current_session = db.query(AcademicSession).filter(AcademicSession.is_current == True).first()
         session_id = current_session.id if current_session else None
 
     if not session_id:
@@ -98,7 +98,7 @@ def get_outstanding_report(db: Session, session_id: Optional[int] = None) -> Lis
     """Get list of all students with outstanding balances"""
 
     if not session_id:
-        current_session = db.query(Session).filter(Session.is_current == True).first()
+        current_session = db.query(AcademicSession).filter(AcademicSession.is_current == True).first()
         session_id = current_session.id if current_session else None
 
     if not session_id:
@@ -219,7 +219,7 @@ def get_monthly_collection_report(db: Session, year: int, month: int) -> Dict:
 def get_session_collections_report(db: Session) -> List[Dict]:
     """Get collection summary for all sessions"""
 
-    sessions = db.query(Session).all()
+    sessions = db.query(AcademicSession).all()
     result = []
 
     for session in sessions:
@@ -286,7 +286,7 @@ def get_outstanding_by_class(db: Session, session_id: Optional[int] = None) -> L
     """Get outstanding balance grouped by class"""
 
     if not session_id:
-        current_session = db.query(Session).filter(Session.is_current == True).first()
+        current_session = db.query(AcademicSession).filter(AcademicSession.is_current == True).first()
         session_id = current_session.id if current_session else None
 
     if not session_id:

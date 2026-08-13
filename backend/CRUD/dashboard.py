@@ -1,7 +1,7 @@
 from sqlalchemy.orm import Session
 from sqlalchemy import func
-from ..database.models import Student, Parent, Enrollment, Payment, FeeStructure, Session, Class
-from typing import Dict, Any, List
+from ..database.models import Student, Parent, Enrollment, Payment, FeeStructure, AcademicSession, Class
+from typing import Dict, Any, List, Optional
 from datetime import datetime, timedelta
 
 
@@ -11,7 +11,7 @@ def get_admin_dashboard(db: Session) -> Dict[str, Any]:
     """Get all statistics for admin dashboard"""
 
     # Get current session
-    current_session = db.query(Session).filter(Session.is_current == True).first()
+    current_session = db.query(AcademicSession).filter(AcademicSession.is_current == True).first()
 
     # Basic counts
     total_students = db.query(Student).count()
@@ -175,7 +175,7 @@ def get_all_classes_payment_status(db: Session, session_id: Optional[int] = None
     """Get payment status for all classes (card view)"""
 
     if not session_id:
-        current_session = db.query(Session).filter(Session.is_current == True).first()
+        current_session = db.query(AcademicSession).filter(AcademicSession.is_current == True).first()
         session_id = current_session.id if current_session else None
 
     if not session_id:
@@ -246,7 +246,7 @@ def get_class_payment_monitor(
     """Get detailed class payment monitor with student list"""
 
     if not session_id:
-        current_session = db.query(Session).filter(Session.is_current == True).first()
+        current_session = db.query(AcademicSession).filter(AcademicSession.is_current == True).first()
         session_id = current_session.id if current_session else None
 
     if not session_id:
@@ -264,7 +264,7 @@ def get_class_payment_monitor(
     if not fee:
         return {
             "class_name": class_obj.name,
-            "session_name": db.query(Session).filter(Session.id == session_id).first().name,
+            "session_name": db.query(AcademicSession).filter(AcademicSession.id == session_id).first().name,
             "fee": 0,
             "students": []
         }
@@ -307,7 +307,7 @@ def get_class_payment_monitor(
 
     return {
         "class_name": class_obj.name,
-        "session_name": db.query(Session).filter(Session.id == session_id).first().name,
+        "session_name": db.query(AcademicSession).filter(AcademicSession.id == session_id).first().name,
         "fee": fee.amount,
         "students": students_data
     }

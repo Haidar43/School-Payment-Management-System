@@ -39,6 +39,5 @@ class StudentSummary(BaseModel):
     first_name: str
     last_name: str
     parent_name: Optional[str] = None  # Will be populated from parent relationship
-
     class Config:
         from_attributes = True

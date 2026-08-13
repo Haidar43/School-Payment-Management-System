@@ -1,8 +1,8 @@
 from sqlalchemy.orm import Session
 from sqlalchemy import func
-from database.models import Admin
-from schemas.admin import AdminCreate, AdminUpdate
-from utils.auth import hash_password, verify_password
+from ..database.models import Admin
+from ..schemas.admin import AdminCreate, AdminUpdate
+from ..utils.auth import hash_password, verify_password
 from typing import Optional, List
 
 

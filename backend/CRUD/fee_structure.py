@@ -1,7 +1,7 @@
 from sqlalchemy.orm import Session
 from sqlalchemy import func
-from database.models import FeeStructure, Session
-from schemas.fee_structure import FeeStructureCreate, FeeStructureUpdate
+from ..database.models import FeeStructure, AcademicSession
+from ..schemas.fee_structure import FeeStructureCreate, FeeStructureUpdate
 from typing import Optional, List
 
 
@@ -53,7 +53,7 @@ def get_fee_structures_by_session(db: Session, session_id: int) -> List[FeeStruc
 
 def get_current_session_fees(db: Session) -> List[FeeStructure]:
     """Get all fee structures for current session"""
-    current_session = db.query(Session).filter(Session.is_current == True).first()
+    current_session = db.query(AcademicSession).filter(AcademicSession.is_current == True).first()
     if not current_session:
         return []
 

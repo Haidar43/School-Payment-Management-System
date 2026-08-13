@@ -1,30 +1,38 @@
 from fastapi import APIRouter, Depends, HTTPException, status, Query
 from sqlalchemy.orm import Session
-from typing import List, Optional
-from datetime import date
 
 from ..database.session import get_db
-from ..database.models import Admin
+from ..database.models import Admin, AcademicSession
 from ..schemas.admin import AdminCreate, AdminUpdate, AdminResponse
-from schemas.parent import ParentCreate, ParentUpdate, ParentResponse
-from schemas.student import StudentCreate, StudentUpdate, StudentResponse
-from schemas.class_schema import ClassCreate, ClassUpdate, ClassResponse, ClassWithStats
-from schemas.session_schema import SessionCreate, SessionUpdate, SessionResponse, SessionWithStats
-from schemas.fee_structure import FeeStructureCreate, FeeStructureUpdate, FeeStructureResponse
-from schemas.enrollment import EnrollmentCreate, EnrollmentUpdate, EnrollmentResponse, EnrollmentWithPaymentSummary
-from schemas.payment import PaymentCreate, PaymentResponse, PaymentWithDetails
+from ..schemas.parent import ParentCreate, ParentUpdate, ParentResponse
+from ..schemas.student import StudentCreate, StudentUpdate, StudentResponse
+from ..schemas.class_schema import ClassResponse
+from ..schemas.session_schema import SessionCreate, SessionUpdate, SessionResponse
+from ..schemas.fee_structure import FeeStructureCreate, FeeStructureUpdate, FeeStructureResponse
+from ..schemas.enrollment import EnrollmentResponse
+from ..schemas.payment import PaymentCreate, PaymentResponse, PaymentUpdate
 
-from utils.auth import get_current_admin, hash_password
-from crud.admin import *
-from crud.parent import *
-from crud.student import *
-from crud.class_crud import *
-from crud.session_crud import *
-from crud.fee_structure import *
-from crud.enrollment import *
-from crud.payment import *
-from crud.dashboard import *
-from crud.reports import *
+from ..utils.auth import get_current_admin
+from ..crud import admin as admin_crud
+from ..crud import class_crud
+from ..crud import dashboard as dashboard_crud
+from ..crud import enrollment as enrollment_crud
+from ..crud import fee_structure as fee_crud
+from ..crud import parent as parent_crud
+from ..crud import payment as payment_crud
+from ..crud import reports as reports_crud
+from ..crud import session_crud
+from ..crud import student as student_crud
+from ..crud.admin import *
+from ..crud.parent import *
+from ..crud.student import *
+from ..crud.class_crud import *
+from ..crud.session_crud import *
+from ..crud.fee_structure import *
+from ..crud.enrollment import *
+from ..crud.payment import *
+from ..crud.dashboard import *
+from ..crud.reports import *
 
 router = APIRouter(prefix="/api/admin", tags=["Admin"])
 
@@ -39,7 +47,7 @@ def get_dashboard(
         db: Session = Depends(get_db)
 ):
     """Get admin dashboard statistics"""
-    return get_admin_dashboard(db)
+    return dashboard_crud.get_admin_dashboard(db)
 
 
 # ============================================================
@@ -83,7 +91,7 @@ def create_admin(
     # Check if phone exists
     if get_admin_by_phone(db, admin_data.phone):
         raise HTTPException(status_code=400, detail="Phone already registered")
-    return create_admin(db, admin_data)
+    return admin_crud.create_admin(db, admin_data)
 
 
 @router.put("/admins/{admin_id}", response_model=AdminResponse)
@@ -94,7 +102,7 @@ def update_admin(
         db: Session = Depends(get_db)
 ):
     """Update an admin"""
-    db_admin = update_admin(db, admin_id, admin_data)
+    db_admin = admin_crud.update_admin(db, admin_id, admin_data)
     if not db_admin:
         raise HTTPException(status_code=404, detail="Admin not found")
     return db_admin
@@ -109,7 +117,7 @@ def delete_admin(
     """Delete an admin"""
     if admin_id == current_admin.id:
         raise HTTPException(status_code=400, detail="Cannot delete yourself")
-    db_admin = delete_admin(db, admin_id)
+    db_admin = admin_crud.delete_admin(db, admin_id)
     if not db_admin:
         raise HTTPException(status_code=404, detail="Admin not found")
     return {"message": "Admin deleted successfully"}
@@ -126,15 +134,65 @@ def get_parents(
         current_admin: Admin = Depends(get_current_admin),
         db: Session = Depends(get_db)
 ):
-    """Get all parents"""
-    return get_all_parents(db, skip, limit)
+    """Get all parents with children count and outstanding balance"""
+    parents = get_all_parents(db, skip, limit)
+
+    # Get current session
+    current_session = session_crud.get_current_session(db)
+    session_id = current_session.id if current_session else None
+
+    result = []
+    for parent in parents:
+        # Get children count
+        children_count = db.query(Student).filter(Student.parent_id == parent.id).count()
+
+        # Calculate outstanding balance for current session
+        outstanding = 0
+        if session_id:
+            # Get all students for this parent
+            students = db.query(Student).filter(Student.parent_id == parent.id).all()
+            for student in students:
+                enrollment = db.query(Enrollment).filter(
+                    Enrollment.student_id == student.id,
+                    Enrollment.session_id == session_id,
+                    Enrollment.status == "ACTIVE"
+                ).first()
+
+                if enrollment:
+                    fee = db.query(FeeStructure).filter(
+                        FeeStructure.session_id == session_id,
+                        FeeStructure.class_id == enrollment.class_id
+                    ).first()
+
+                    if fee:
+                        total_paid = db.query(func.sum(Payment.amount)).filter(
+                            Payment.enrollment_id == enrollment.id
+                        ).scalar() or 0
+
+                        balance = fee.amount - total_paid
+                        if balance > 0:
+                            outstanding += balance
+
+        result.append({
+            "id": parent.id,
+            "first_name": parent.first_name,
+            "last_name": parent.last_name,
+            "phone": parent.phone,
+            "email": parent.email,
+            "created_at": parent.created_at,
+            "students": db.query(Student).filter(Student.parent_id == parent.id).all(),
+            "children_count": children_count,
+            "outstanding_balance": outstanding
+        })
+
+    return result
 
 
 @router.get("/parents/{parent_id}")
 def get_parent(
-        parent_id: int,
-        current_admin: Admin = Depends(get_current_admin),
-        db: Session = Depends(get_db)
+    parent_id: int,
+    current_admin: Admin = Depends(get_current_admin),
+    db: Session = Depends(get_db)
 ):
     """Get parent with children and payment summary"""
     parent_data = get_parent_with_children(db, parent_id)
@@ -144,41 +202,41 @@ def get_parent(
 
 
 @router.post("/parents", response_model=ParentResponse, status_code=status.HTTP_201_CREATED)
-def create_parent(
+def create_parent_route(
         parent_data: ParentCreate,
         current_admin: Admin = Depends(get_current_admin),
         db: Session = Depends(get_db)
 ):
     """Create a new parent"""
-    if get_parent_by_phone(db, parent_data.phone):
+    if parent_crud.get_parent_by_phone(db, parent_data.phone):
         raise HTTPException(status_code=400, detail="Phone already registered")
-    if parent_data.email and get_parent_by_email(db, parent_data.email):
+    if parent_data.email and parent_crud.get_parent_by_email(db, parent_data.email):
         raise HTTPException(status_code=400, detail="Email already registered")
-    return create_parent(db, parent_data)
+    return parent_crud.create_parent(db, parent_data)
 
 
 @router.put("/parents/{parent_id}", response_model=ParentResponse)
-def update_parent(
+def update_parent_route(
         parent_id: int,
         parent_data: ParentUpdate,
         current_admin: Admin = Depends(get_current_admin),
         db: Session = Depends(get_db)
 ):
     """Update a parent"""
-    db_parent = update_parent(db, parent_id, parent_data)
+    db_parent = parent_crud.update_parent(db, parent_id, parent_data)
     if not db_parent:
         raise HTTPException(status_code=404, detail="Parent not found")
     return db_parent
 
 
 @router.delete("/parents/{parent_id}", status_code=status.HTTP_204_NO_CONTENT)
-def delete_parent(
+def delete_parent_route(
         parent_id: int,
         current_admin: Admin = Depends(get_current_admin),
         db: Session = Depends(get_db)
 ):
     """Delete a parent"""
-    db_parent = delete_parent(db, parent_id)
+    db_parent = parent_crud.delete_parent(db, parent_id)
     if not db_parent:
         raise HTTPException(status_code=404, detail="Parent not found")
     return {"message": "Parent deleted successfully"}
@@ -197,11 +255,39 @@ def get_students(
         current_admin: Admin = Depends(get_current_admin),
         db: Session = Depends(get_db)
 ):
-    """Get all students with optional search"""
+    """Get all students with optional search and rich data"""
     if search:
-        return search_students(db, search)
-    return get_all_students(db, skip, limit)
+        students = search_students(db, search)
+    else:
+        students = get_all_students(db, skip, limit)
 
+    # Get current session if not provided
+    if not session_id:
+        current_session = get_current_session(db)
+        session_id = current_session.id if current_session else None
+
+    # Build rich response
+    result = []
+    for student in students:
+        student_data = get_student_with_payment_summary(db, student.id, session_id)
+        if student_data:
+            result.append(student_data)
+        else:
+            # Fallback to basic student data
+            result.append({
+                "student": student,
+                "parent": student.parent,
+                "current_enrollment": None,
+                "payment_summary": {
+                    "fee": 0,
+                    "paid": 0,
+                    "balance": 0,
+                    "status": "NOT_ENROLLED"
+                },
+                "payment_history": []
+            })
+
+    return result
 
 @router.get("/students/{student_id}")
 def get_student(
@@ -211,7 +297,7 @@ def get_student(
         db: Session = Depends(get_db)
 ):
     """Get student with payment summary"""
-    student_data = get_student_with_payment_summary(db, student_id, session_id)
+    student_data = student_crud.get_student_with_payment_summary(db, student_id, session_id)
     if not student_data:
         raise HTTPException(status_code=404, detail="Student not found")
     return student_data
@@ -224,12 +310,12 @@ def create_student(
         db: Session = Depends(get_db)
 ):
     """Create a new student"""
-    if get_student_by_admission(db, student_data.admission_number):
+    if student_crud.get_student_by_admission(db, student_data.admission_number):
         raise HTTPException(status_code=400, detail="Admission number already exists")
     # Check if parent exists
-    if not get_parent_by_id(db, student_data.parent_id):
+    if not parent_crud.get_parent_by_id(db, student_data.parent_id):
         raise HTTPException(status_code=400, detail="Parent not found")
-    return create_student(db, student_data)
+    return student_crud.create_student(db, student_data)
 
 
 @router.put("/students/{student_id}", response_model=StudentResponse)
@@ -240,7 +326,7 @@ def update_student(
         db: Session = Depends(get_db)
 ):
     """Update a student"""
-    db_student = update_student(db, student_id, student_data)
+    db_student = student_crud.update_student(db, student_id, student_data)
     if not db_student:
         raise HTTPException(status_code=404, detail="Student not found")
     return db_student
@@ -253,7 +339,7 @@ def delete_student(
         db: Session = Depends(get_db)
 ):
     """Delete a student"""
-    db_student = delete_student(db, student_id)
+    db_student = student_crud.delete_student(db, student_id)
     if not db_student:
         raise HTTPException(status_code=404, detail="Student not found")
     return {"message": "Student deleted successfully"}
@@ -268,7 +354,7 @@ def promote_student(
         db: Session = Depends(get_db)
 ):
     """Promote a student to new class/session"""
-    result = promote_student(db, student_id, new_class_id, new_session_id)
+    result = student_crud.promote_student(db, student_id, new_class_id, new_session_id)
     if not result:
         raise HTTPException(status_code=404, detail="Student not found")
     if "error" in result:
@@ -287,7 +373,7 @@ def get_classes(
         db: Session = Depends(get_db)
 ):
     """Get all classes with statistics"""
-    return get_all_classes_with_stats(db, session_id)
+    return class_crud.get_all_classes_with_stats(db, session_id)
 
 
 @router.get("/classes/{class_id}")
@@ -298,7 +384,7 @@ def get_class(
         db: Session = Depends(get_db)
 ):
     """Get class with statistics"""
-    class_data = get_class_with_stats(db, class_id, session_id)
+    class_data = class_crud.get_class_with_stats(db, class_id, session_id)
     if not class_data:
         raise HTTPException(status_code=404, detail="Class not found")
     return class_data
@@ -311,9 +397,9 @@ def create_class(
         db: Session = Depends(get_db)
 ):
     """Create a new class"""
-    if get_class_by_name(db, class_data.name):
+    if class_crud.get_class_by_name(db, class_data.name):
         raise HTTPException(status_code=400, detail="Class name already exists")
-    return create_class(db, class_data)
+    return class_crud.create_class(db, class_data)
 
 
 @router.put("/classes/{class_id}", response_model=ClassResponse)
@@ -324,7 +410,7 @@ def update_class(
         db: Session = Depends(get_db)
 ):
     """Update a class"""
-    db_class = update_class(db, class_id, class_data)
+    db_class = class_crud.update_class(db, class_id, class_data)
     if not db_class:
         raise HTTPException(status_code=404, detail="Class not found")
     return db_class
@@ -337,7 +423,7 @@ def delete_class(
         db: Session = Depends(get_db)
 ):
     """Delete a class"""
-    db_class = delete_class(db, class_id)
+    db_class = class_crud.delete_class(db, class_id)
     if not db_class:
         raise HTTPException(status_code=404, detail="Class not found")
     return {"message": "Class deleted successfully"}
@@ -355,7 +441,7 @@ def get_sessions(
         db: Session = Depends(get_db)
 ):
     """Get all sessions"""
-    return get_all_sessions(db, skip, limit)
+    return session_crud.get_all_sessions(db, skip, limit)
 
 
 @router.get("/sessions/current")
@@ -364,7 +450,7 @@ def get_current_session(
         db: Session = Depends(get_db)
 ):
     """Get current active session"""
-    session = get_current_session(db)
+    session = session_crud.get_current_session(db)
     if not session:
         raise HTTPException(status_code=404, detail="No current session set")
     return session
@@ -377,7 +463,7 @@ def get_session_stats(
         db: Session = Depends(get_db)
 ):
     """Get session statistics"""
-    stats = get_session_stats(db, session_id)
+    stats = session_crud.get_session_stats(db, session_id)
     if not stats:
         raise HTTPException(status_code=404, detail="Session not found")
     return stats
@@ -390,9 +476,9 @@ def create_session(
         db: Session = Depends(get_db)
 ):
     """Create a new session"""
-    if get_session_by_name(db, session_data.name):
+    if session_crud.get_session_by_name(db, session_data.name):
         raise HTTPException(status_code=400, detail="Session name already exists")
-    return create_session(db, session_data)
+    return session_crud.create_session(db, session_data)
 
 
 @router.put("/sessions/{session_id}", response_model=SessionResponse)
@@ -403,7 +489,7 @@ def update_session(
         db: Session = Depends(get_db)
 ):
     """Update a session"""
-    db_session = update_session(db, session_id, session_data)
+    db_session = session_crud.update_session(db, session_id, session_data)
     if not db_session:
         raise HTTPException(status_code=404, detail="Session not found")
     return db_session
@@ -416,7 +502,7 @@ def activate_session(
         db: Session = Depends(get_db)
 ):
     """Set a session as current"""
-    db_session = set_current_session(db, session_id)
+    db_session = session_crud.set_current_session(db, session_id)
     if not db_session:
         raise HTTPException(status_code=404, detail="Session not found")
     return {"message": f"Session '{db_session.name}' activated", "session": db_session}
@@ -429,7 +515,7 @@ def delete_session(
         db: Session = Depends(get_db)
 ):
     """Delete a session"""
-    db_session = delete_session(db, session_id)
+    db_session = session_crud.delete_session(db, session_id)
     if not db_session:
         raise HTTPException(status_code=404, detail="Session not found")
     return {"message": "Session deleted successfully"}
@@ -456,7 +542,7 @@ def get_current_session_fees(
         db: Session = Depends(get_db)
 ):
     """Get all fee structures for current session"""
-    return get_current_session_fees(db)
+    return fee_crud.get_current_session_fees(db)
 
 
 @router.get("/fees/{fee_id}")
@@ -466,7 +552,7 @@ def get_fee(
         db: Session = Depends(get_db)
 ):
     """Get fee structure by ID"""
-    fee = get_fee_structure_by_id(db, fee_id)
+    fee = fee_crud.get_fee_structure_by_id(db, fee_id)
     if not fee:
         raise HTTPException(status_code=404, detail="Fee structure not found")
     return fee
@@ -480,13 +566,13 @@ def create_fee(
 ):
     """Create a new fee structure"""
     # Check if session exists
-    if not get_session_by_id(db, fee_data.session_id):
+    if not session_crud.get_session_by_id(db, fee_data.session_id):
         raise HTTPException(status_code=400, detail="Session not found")
     # Check if class exists
-    if not get_class_by_id(db, fee_data.class_id):
+    if not class_crud.get_class_by_id(db, fee_data.class_id):
         raise HTTPException(status_code=400, detail="Class not found")
 
-    fee = create_fee_structure(db, fee_data)
+    fee = fee_crud.create_fee_structure(db, fee_data)
     if not fee:
         raise HTTPException(status_code=400, detail="Fee structure already exists for this session and class")
     return fee
@@ -500,7 +586,7 @@ def update_fee(
         db: Session = Depends(get_db)
 ):
     """Update a fee structure"""
-    db_fee = update_fee_structure(db, fee_id, fee_data)
+    db_fee = fee_crud.update_fee_structure(db, fee_id, fee_data)
     if not db_fee:
         raise HTTPException(status_code=404, detail="Fee structure not found")
     return db_fee
@@ -513,7 +599,7 @@ def delete_fee(
         db: Session = Depends(get_db)
 ):
     """Delete a fee structure"""
-    db_fee = delete_fee_structure(db, fee_id)
+    db_fee = fee_crud.delete_fee_structure(db, fee_id)
     if not db_fee:
         raise HTTPException(status_code=404, detail="Fee structure not found")
     return {"message": "Fee structure deleted successfully"}
@@ -521,7 +607,7 @@ def delete_fee(
 
 # Helper function for filtered fees
 def get_fee_structures_filtered(db: Session, session_id: Optional[int] = None, class_id: Optional[int] = None):
-    from crud.fee_structure import get_fee_structures_by_session, get_all_fee_structures
+    from ..crud.fee_structure import get_fee_structures_by_session, get_all_fee_structures
     if session_id:
         return get_fee_structures_by_session(db, session_id)
     return get_all_fee_structures(db)
@@ -551,7 +637,7 @@ def get_enrollment(
         db: Session = Depends(get_db)
 ):
     """Get enrollment with payment details"""
-    enrollment = get_enrollment_with_details(db, enrollment_id)
+    enrollment = enrollment_crud.get_enrollment_with_details(db, enrollment_id)
     if not enrollment:
         raise HTTPException(status_code=404, detail="Enrollment not found")
     return enrollment
@@ -564,10 +650,10 @@ def get_student_current_enrollment(
         db: Session = Depends(get_db)
 ):
     """Get student's current enrollment"""
-    enrollment = get_student_current_enrollment(db, student_id)
+    enrollment = enrollment_crud.get_student_current_enrollment(db, student_id)
     if not enrollment:
         raise HTTPException(status_code=404, detail="Student not enrolled in current session")
-    return get_enrollment_with_details(db, enrollment.id)
+    return enrollment_crud.get_enrollment_with_details(db, enrollment.id)
 
 
 @router.get("/students/{student_id}/payment-summary")
@@ -578,7 +664,7 @@ def get_student_payment_summary(
         db: Session = Depends(get_db)
 ):
     """Get student's payment summary"""
-    return get_student_with_payment_summary(db, student_id, session_id)
+    return student_crud.get_student_with_payment_summary(db, student_id, session_id)
 
 
 @router.post("/enrollments", response_model=EnrollmentResponse, status_code=status.HTTP_201_CREATED)
@@ -589,16 +675,16 @@ def create_enrollment(
 ):
     """Create a new enrollment"""
     # Check if student exists
-    if not get_student_by_id(db, enrollment_data.student_id):
+    if not student_crud.get_student_by_id(db, enrollment_data.student_id):
         raise HTTPException(status_code=400, detail="Student not found")
     # Check if class exists
-    if not get_class_by_id(db, enrollment_data.class_id):
+    if not class_crud.get_class_by_id(db, enrollment_data.class_id):
         raise HTTPException(status_code=400, detail="Class not found")
     # Check if session exists
-    if not get_session_by_id(db, enrollment_data.session_id):
+    if not session_crud.get_session_by_id(db, enrollment_data.session_id):
         raise HTTPException(status_code=400, detail="Session not found")
 
-    enrollment = create_enrollment(db, enrollment_data)
+    enrollment = enrollment_crud.create_enrollment(db, enrollment_data)
     if not enrollment:
         raise HTTPException(status_code=400, detail="Student already enrolled in this session or fee structure missing")
     return enrollment
@@ -612,7 +698,7 @@ def update_enrollment(
         db: Session = Depends(get_db)
 ):
     """Update an enrollment"""
-    db_enrollment = update_enrollment(db, enrollment_id, enrollment_data)
+    db_enrollment = enrollment_crud.update_enrollment(db, enrollment_id, enrollment_data)
     if not db_enrollment:
         raise HTTPException(status_code=404, detail="Enrollment not found")
     return db_enrollment
@@ -625,7 +711,7 @@ def delete_enrollment(
         db: Session = Depends(get_db)
 ):
     """Delete an enrollment"""
-    db_enrollment = delete_enrollment(db, enrollment_id)
+    db_enrollment = enrollment_crud.delete_enrollment(db, enrollment_id)
     if not db_enrollment:
         raise HTTPException(status_code=404, detail="Enrollment not found")
     return {"message": "Enrollment deleted successfully"}
@@ -633,7 +719,7 @@ def delete_enrollment(
 
 # Helper function for filtered enrollments
 def get_enrollments_filtered(db: Session, student_id=None, session_id=None, class_id=None, status=None):
-    from crud.enrollment import get_all_enrollments
+    from ..crud.enrollment import get_all_enrollments
     if student_id or session_id or class_id or status:
         return get_all_enrollments(db)  # For now, return all. Can be optimized.
     return get_all_enrollments(db)
@@ -658,7 +744,7 @@ def get_payments(
         db: Session = Depends(get_db)
 ):
     """Get payments with filters"""
-    return get_payments_filtered(
+    return payment_crud.get_payments_filtered(
         db, session_id, student_id, parent_id,
         receipt_number, method, start_date, end_date,
         skip, limit
@@ -672,7 +758,7 @@ def get_payment(
         db: Session = Depends(get_db)
 ):
     """Get payment with details"""
-    payment = get_payment_with_details(db, payment_id)
+    payment = payment_crud.get_payment_with_details(db, payment_id)
     if not payment:
         raise HTTPException(status_code=404, detail="Payment not found")
     return payment
@@ -686,10 +772,10 @@ def create_payment(
 ):
     """Record a new payment"""
     # Check if student exists
-    if not get_student_by_id(db, payment_data.student_id):
+    if not student_crud.get_student_by_id(db, payment_data.student_id):
         raise HTTPException(status_code=400, detail="Student not found")
 
-    payment = create_payment(db, payment_data)
+    payment = payment_crud.create_payment(db, payment_data)
     if not payment:
         raise HTTPException(status_code=400, detail="Student not enrolled in current session")
     return payment
@@ -703,7 +789,7 @@ def update_payment(
         db: Session = Depends(get_db)
 ):
     """Update a payment"""
-    db_payment = update_payment(db, payment_id, payment_data)
+    db_payment = payment_crud.update_payment(db, payment_id, payment_data)
     if not db_payment:
         raise HTTPException(status_code=404, detail="Payment not found")
     return db_payment
@@ -716,7 +802,7 @@ def delete_payment(
         db: Session = Depends(get_db)
 ):
     """Delete a payment"""
-    db_payment = delete_payment(db, payment_id)
+    db_payment = payment_crud.delete_payment(db, payment_id)
     if not db_payment:
         raise HTTPException(status_code=404, detail="Payment not found")
     return {"message": "Payment deleted successfully"}
@@ -733,7 +819,7 @@ def get_payment_status(
         db: Session = Depends(get_db)
 ):
     """Get payment status for all classes (card view)"""
-    return get_all_classes_payment_status(db, session_id)
+    return dashboard_crud.get_all_classes_payment_status(db, session_id)
 
 
 @router.get("/payment-status/{class_id}")
@@ -745,7 +831,7 @@ def get_class_payment_monitor(
         db: Session = Depends(get_db)
 ):
     """Get detailed class payment monitor with student list"""
-    result = get_class_payment_monitor(db, class_id, session_id, status_filter)
+    result = dashboard_crud.get_class_payment_monitor(db, class_id, session_id, status_filter)
     if "error" in result:
         raise HTTPException(status_code=400, detail=result["error"])
     return result
@@ -763,7 +849,7 @@ def get_payment_report(
         db: Session = Depends(get_db)
 ):
     """Get comprehensive payment report"""
-    result = get_payment_report(db, session_id, class_id)
+    result = reports_crud.get_payment_report(db, session_id, class_id)
     if "error" in result:
         raise HTTPException(status_code=400, detail=result["error"])
     return result
@@ -776,7 +862,7 @@ def get_outstanding_report(
         db: Session = Depends(get_db)
 ):
     """Get list of all students with outstanding balances"""
-    return get_outstanding_report(db, session_id)
+    return reports_crud.get_outstanding_report(db, session_id)
 
 
 @router.get("/reports/daily-collection")
@@ -786,7 +872,7 @@ def get_daily_collection(
         db: Session = Depends(get_db)
 ):
     """Get collection report for a specific date"""
-    return get_daily_collection_report(db, date)
+    return reports_crud.get_daily_collection_report(db, date)
 
 
 @router.get("/reports/today")
@@ -795,7 +881,7 @@ def get_today_collection(
         db: Session = Depends(get_db)
 ):
     """Get today's collections"""
-    return get_today_payments(db)
+    return reports_crud.get_today_payments(db)
 
 
 @router.get("/reports/monthly")
@@ -806,7 +892,7 @@ def get_monthly_collection(
         db: Session = Depends(get_db)
 ):
     """Get monthly collection report"""
-    return get_monthly_collection_report(db, year, month)
+    return reports_crud.get_monthly_collection_report(db, year, month)
 
 
 @router.get("/reports/this-month")
@@ -815,7 +901,7 @@ def get_this_month_collection(
         db: Session = Depends(get_db)
 ):
     """Get this month's collections"""
-    return get_this_month_payments(db)
+    return reports_crud.get_this_month_payments(db)
 
 
 @router.get("/reports/session-collections")
@@ -824,7 +910,7 @@ def get_session_collections(
         db: Session = Depends(get_db)
 ):
     """Get collection summary for all sessions"""
-    return get_session_collections_report(db)
+    return reports_crud.get_session_collections_report(db)
 
 
 @router.get("/reports/outstanding-by-class")
@@ -834,7 +920,7 @@ def get_outstanding_by_class(
         db: Session = Depends(get_db)
 ):
     """Get outstanding balance grouped by class"""
-    return get_outstanding_by_class(db, session_id)
+    return reports_crud.get_outstanding_by_class(db, session_id)
 
 
 @router.get("/reports/defaulters")
@@ -844,7 +930,7 @@ def get_defaulters(
         db: Session = Depends(get_db)
 ):
     """Get list of all defaulters"""
-    return get_defaulters_list(db, session_id)
+    return reports_crud.get_defaulters_list(db, session_id)
 
 
 # ============================================================
@@ -858,4 +944,4 @@ def get_recent_payments(
         db: Session = Depends(get_db)
 ):
     """Get recent payments"""
-    return get_recent_payments(db, limit)
+    return dashboard_crud.get_recent_payments(db, limit)

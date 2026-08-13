@@ -1,8 +1,8 @@
 from sqlalchemy.orm import Session
 from sqlalchemy import func, and_
-from database.models import Payment, Enrollment, Student, Session, FeeStructure
-from schemas.payment import PaymentCreate, PaymentUpdate
-from utils.receipt import generate_receipt_number
+from ..database.models import Payment, Enrollment, Student, AcademicSession, FeeStructure
+from ..schemas.payment import PaymentCreate, PaymentUpdate
+from ..utils.receipt import generate_receipt_number
 from typing import Optional, List
 from datetime import date
 
@@ -12,7 +12,7 @@ from datetime import date
 def create_payment(db: Session, payment_data: PaymentCreate) -> Optional[Payment]:
     """Create a new payment"""
     # Get student's current enrollment
-    current_session = db.query(Session).filter(Session.is_current == True).first()
+    current_session = db.query(AcademicSession).filter(AcademicSession.is_current == True).first()
     if not current_session:
         return None
 

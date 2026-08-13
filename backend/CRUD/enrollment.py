@@ -1,6 +1,6 @@
 from sqlalchemy.orm import Session
 from sqlalchemy import func
-from ..database.models import Enrollment, Student, Session, Class, FeeStructure, Payment
+from ..database.models import Enrollment, Student, AcademicSession, Class, FeeStructure, Payment
 from ..schemas.enrollment import EnrollmentCreate, EnrollmentUpdate
 from typing import Optional, List
 
@@ -58,7 +58,7 @@ def get_all_enrollments(db: Session, skip: int = 0, limit: int = 100) -> List[En
 
 def get_student_current_enrollment(db: Session, student_id: int) -> Optional[Enrollment]:
     """Get student's current enrollment"""
-    current_session = db.query(Session).filter(Session.is_current == True).first()
+    current_session = db.query(AcademicSession).filter(AcademicSession.is_current == True).first()
     if not current_session:
         return None
 
@@ -72,7 +72,7 @@ def get_student_current_enrollment(db: Session, student_id: int) -> Optional[Enr
 def get_class_enrollments(db: Session, class_id: int, session_id: Optional[int] = None) -> List[Enrollment]:
     """Get all enrollments for a class"""
     if not session_id:
-        current_session = db.query(Session).filter(Session.is_current == True).first()
+        current_session = db.query(AcademicSession).filter(AcademicSession.is_current == True).first()
         session_id = current_session.id if current_session else None
 
     if not session_id:

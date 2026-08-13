@@ -31,6 +31,8 @@ class ParentResponse(BaseModel):
     phone: str
     email: Optional[str] = None
     created_at: Optional[datetime] = None
+    children_count: int
+    outstanding_balance: float
 
     class Config:
         from_attributes = True

@@ -5,51 +5,31 @@
   </component>
   <component name="ChangeListManager">
     <list default="true" id="339ea4c7-1625-46b2-a472-1db0fb24a813" name="Changes" comment="">
-      <change afterPath="$PROJECT_DIR$/backend/CRUD/class_crud.py" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/backend/CRUD/enrollment.py" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/backend/CRUD/payment.py" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/backend/CRUD/session_crud.py" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/backend/CRUD/student.py" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/backend/routes/admin_routes.py" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/backend/routes/parent_routes.py" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/backend/schemas/__init__.py" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/backend/schemas/admin.py" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/backend/schemas/class_schema.py" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/backend/schemas/dashboard.py" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/backend/schemas/enrollment.py" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/backend/schemas/fee_structure.py" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/backend/schemas/parent.py" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/backend/schemas/payment.py" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/backend/schemas/report.py" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/backend/schemas/session_schema.py" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/backend/schemas/student.py" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/backend/utils/auth.py" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/backend/utils/deps.py" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/backend/utils/security.py" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/backend/utils/validators.py" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/backend/utils/receipt.py" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/frontend/src/pages/admin/Enrollments.jsx" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/.env" beforeDir="false" afterPath="$PROJECT_DIR$/.env" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/backend/CRUD/__init__.py" beforeDir="false" afterPath="$PROJECT_DIR$/backend/CRUD/dashboard.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/backend/CRUD/academic.py" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/backend/CRUD/class_.py" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/backend/CRUD/parent.py" beforeDir="false" afterPath="$PROJECT_DIR$/backend/CRUD/fee_structure.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/backend/CRUD/students.py" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/backend/core/__init__.py" beforeDir="false" afterPath="$PROJECT_DIR$/backend/CRUD/reports.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/backend/core/config.py" beforeDir="false" afterPath="$PROJECT_DIR$/backend/utils/config.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/backend/core/deps.py" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/backend/core/security.py" beforeDir="false" afterPath="$PROJECT_DIR$/backend/crud/__init__.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/backend/database/base.py" beforeDir="false" afterPath="$PROJECT_DIR$/backend/database/base.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/backend/CRUD/class_crud.py" beforeDir="false" afterPath="$PROJECT_DIR$/backend/CRUD/class_crud.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/backend/CRUD/dashboard.py" beforeDir="false" afterPath="$PROJECT_DIR$/backend/CRUD/dashboard.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/backend/CRUD/enrollment.py" beforeDir="false" afterPath="$PROJECT_DIR$/backend/CRUD/enrollment.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/backend/CRUD/fee_structure.py" beforeDir="false" afterPath="$PROJECT_DIR$/backend/CRUD/fee_structure.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/backend/CRUD/payment.py" beforeDir="false" afterPath="$PROJECT_DIR$/backend/CRUD/payment.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/backend/CRUD/reports.py" beforeDir="false" afterPath="$PROJECT_DIR$/backend/CRUD/reports.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/backend/CRUD/session_crud.py" beforeDir="false" afterPath="$PROJECT_DIR$/backend/CRUD/session_crud.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/backend/CRUD/student.py" beforeDir="false" afterPath="$PROJECT_DIR$/backend/CRUD/student.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/backend/crud/__init__.py" beforeDir="false" afterPath="$PROJECT_DIR$/backend/crud/__init__.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/backend/crud/admin.py" beforeDir="false" afterPath="$PROJECT_DIR$/backend/crud/admin.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/backend/crud/parent.py" beforeDir="false" afterPath="$PROJECT_DIR$/backend/crud/parent.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/backend/database/__init__.py" beforeDir="false" afterPath="$PROJECT_DIR$/backend/database/__init__.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/backend/database/models.py" beforeDir="false" afterPath="$PROJECT_DIR$/backend/database/models.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/backend/database/session.py" beforeDir="false" afterPath="$PROJECT_DIR$/backend/database/session.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/backend/main.py" beforeDir="false" afterPath="$PROJECT_DIR$/backend/main.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/backend/routes/__init__.py" beforeDir="false" afterPath="$PROJECT_DIR$/backend/routes/__init__.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/backend/routes/academic.py" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/backend/routes/admin.py" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/backend/routes/class_.py" beforeDir="false" afterPath="$PROJECT_DIR$/backend/crud/admin.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/backend/routes/grade.py" beforeDir="false" afterPath="$PROJECT_DIR$/backend/routes/public_routes.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/backend/routes/parent.py" beforeDir="false" afterPath="$PROJECT_DIR$/backend/crud/parent.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/backend/routes/students.py" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/backend/routes/teacher.py" beforeDir="false" afterPath="$PROJECT_DIR$/backend/utils/__init__.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/backend/schema.py" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/backend/routes/admin_routes.py" beforeDir="false" afterPath="$PROJECT_DIR$/backend/routes/admin_routes.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/backend/routes/parent_routes.py" beforeDir="false" afterPath="$PROJECT_DIR$/backend/routes/parent_routes.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/backend/routes/public_routes.py" beforeDir="false" afterPath="$PROJECT_DIR$/backend/routes/public_routes.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/backend/schemas/parent.py" beforeDir="false" afterPath="$PROJECT_DIR$/backend/schemas/parent.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/backend/schemas/student.py" beforeDir="false" afterPath="$PROJECT_DIR$/backend/schemas/student.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/backend/utils/__init__.py" beforeDir="false" afterPath="$PROJECT_DIR$/backend/utils/__init__.py" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -57,7 +37,7 @@
     <option name="LAST_RESOLUTION" value="IGNORE" />
   </component>
   <component name="EmbeddingIndexingInfo">
-    <option name="cachedIndexableFilesCount" value="43" />
+    <option name="cachedIndexableFilesCount" value="49" />
   </component>
   <component name="FileTemplateManagerImpl">
     <option name="RECENT_TEMPLATES">
@@ -89,6 +69,7 @@
   &quot;keyToString&quot;: {
     &quot;ModuleVcsDetector.initialDetectionPerformed&quot;: &quot;true&quot;,
     &quot;Python.academic.executor&quot;: &quot;Run&quot;,
+    &quot;Python.main.executor&quot;: &quot;Run&quot;,
     &quot;RunOnceActivity.MCP Project settings loaded&quot;: &quot;true&quot;,
     &quot;RunOnceActivity.ShowReadmeOnStart&quot;: &quot;true&quot;,
     &quot;RunOnceActivity.TerminalTabsStorage.copyFrom.TerminalArrangementManager.252&quot;: &quot;true&quot;,
@@ -102,6 +83,36 @@
       <recent name="C:\Users\user\PycharmProjects\School Management System\backend\database" />
       <recent name="C:\Users\user\PycharmProjects\School Management System\backend\schema" />
     </key>
+  </component>
+  <component name="RunManager">
+    <configuration name="main" type="PythonConfigurationType" factoryName="Python" temporary="true" nameIsGenerated="true">
+      <module name="School Management System" />
+      <option name="ENV_FILES" value="" />
+      <option name="INTERPRETER_OPTIONS" value="" />
+      <option name="PARENT_ENVS" value="true" />
+      <envs>
+        <env name="PYTHONUNBUFFERED" value="1" />
+      </envs>
+      <option name="SDK_HOME" value="" />
+      <option name="WORKING_DIRECTORY" value="$PROJECT_DIR$/backend" />
+      <option name="IS_MODULE_SDK" value="true" />
+      <option name="ADD_CONTENT_ROOTS" value="true" />
+      <option name="ADD_SOURCE_ROOTS" value="true" />
+      <option name="RUN_TOOL" value="" />
+      <option name="SCRIPT_NAME" value="$PROJECT_DIR$/backend/main.py" />
+      <option name="PARAMETERS" value="" />
+      <option name="SHOW_COMMAND_LINE" value="false" />
+      <option name="EMULATE_TERMINAL" value="false" />
+      <option name="MODULE_MODE" value="false" />
+      <option name="REDIRECT_INPUT" value="false" />
+      <option name="INPUT_FILE" value="" />
+      <method v="2" />
+    </configuration>
+    <recent_temporary>
+      <list>
+        <item itemvalue="Python.main" />
+      </list>
+    </recent_temporary>
   </component>
   <component name="SharedIndexes">
     <attachedChunks>

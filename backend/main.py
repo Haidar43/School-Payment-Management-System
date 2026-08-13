@@ -1,8 +1,8 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
-from database.session import create_tables
-from routes import admin_router, parent_router, public_router
+from .database.session import create_tables
+from .routes import admin_router, parent_router, public_router
 
 # Create database tables
 create_tables()
@@ -12,8 +12,16 @@ print("✅ Database tables created successfully!")
 app = FastAPI(
     title="School Payment Management System",
     description="API for managing school fees, students, and payments",
-    version="1.0.0"
+    version="1.0.0",
+    swagger_ui_parameters={
+        "persistAuthorization": True  # ADD THIS - Keeps token after page refresh
+    }
 )
+
+origins = [
+    "http://localhost:5173/",  # Default Vite React local address
+    "http://localhost:3000/",  # Default Create-React-App local address
+    ]
 
 # Add CORS middleware
 app.add_middleware(
@@ -48,7 +56,7 @@ def health_check():
 if __name__ == "__main__":
     import uvicorn
     uvicorn.run(
-        "main:app",
+        "backend.main:app",
         host="0.0.0.0",
         port=8000,
         reload=True

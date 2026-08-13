@@ -7,15 +7,18 @@ from dotenv import load_dotenv
 # Load environment variables
 load_dotenv()
 
-# Database URL - uses SQLite by default, can be changed via .env
+# Database URL - uses SQLite by default
 DATABASE_URL = os.getenv("DATABASE_URL", "sqlite:///./school_payment.db")
 
 # Create database engine
 # For SQLite, we need check_same_thread=False to allow multiple threads
-engine = create_engine(
-    DATABASE_URL,
-    connect_args={"check_same_thread": False} if "sqlite" in DATABASE_URL else {}
-)
+if "sqlite" in DATABASE_URL:
+    engine = create_engine(
+        DATABASE_URL,
+        connect_args={"check_same_thread": False}
+    )
+else:
+    engine = create_engine(DATABASE_URL)
 
 # Create session factory
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)

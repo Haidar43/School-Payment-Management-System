@@ -1,8 +1,8 @@
 from sqlalchemy.orm import Session
 from sqlalchemy import func
-from database.models import Parent, Student, Enrollment, Payment, FeeStructure
-from schemas.parent import ParentCreate, ParentUpdate
-from utils.auth import hash_password, verify_password
+from ..database.models import Parent, Student, Enrollment, Payment, FeeStructure, AcademicSession
+from ..schemas.parent import ParentCreate, ParentUpdate
+from ..utils.auth import hash_password, verify_password
 from typing import Optional, List
 
 
@@ -56,6 +56,10 @@ def get_parent_with_children(db: Session, parent_id: int) -> Optional[dict]:
 
     children = db.query(Student).filter(Student.parent_id == parent_id).all()
 
+    # Get current session
+    current_session = db.query(AcademicSession).filter(AcademicSession.is_current == True).first()
+    session_id = current_session.id if current_session else None
+
     result = {
         "parent": parent,
         "children": [],
@@ -63,11 +67,8 @@ def get_parent_with_children(db: Session, parent_id: int) -> Optional[dict]:
         "outstanding_balance": 0
     }
 
-    # Get current session
-    current_session = db.query(Session).filter(Session.is_current == True).first()
-
     for student in children:
-        student_data = {
+        child_data = {
             "student": student,
             "class": None,
             "session": None,
@@ -77,16 +78,16 @@ def get_parent_with_children(db: Session, parent_id: int) -> Optional[dict]:
             "status": "NOT_ENROLLED"
         }
 
-        if current_session:
+        if session_id:
             enrollment = db.query(Enrollment).filter(
                 Enrollment.student_id == student.id,
-                Enrollment.session_id == current_session.id,
+                Enrollment.session_id == session_id,
                 Enrollment.status == "ACTIVE"
             ).first()
 
             if enrollment:
                 fee = db.query(FeeStructure).filter(
-                    FeeStructure.session_id == current_session.id,
+                    FeeStructure.session_id == session_id,
                     FeeStructure.class_id == enrollment.class_id
                 ).first()
 
@@ -97,17 +98,17 @@ def get_parent_with_children(db: Session, parent_id: int) -> Optional[dict]:
                 fee_amount = fee.amount if fee else 0
                 balance = fee_amount - total_paid
 
-                student_data["class"] = enrollment.class_
-                student_data["session"] = enrollment.session
-                student_data["fee"] = fee_amount
-                student_data["paid"] = total_paid
-                student_data["balance"] = balance
-                student_data["status"] = "PAID" if balance <= 0 else "PARTIAL" if total_paid > 0 else "UNPAID"
+                child_data["class"] = enrollment.class_
+                child_data["session"] = enrollment.session
+                child_data["fee"] = fee_amount
+                child_data["paid"] = total_paid
+                child_data["balance"] = balance
+                child_data["status"] = "PAID" if balance <= 0 else "PARTIAL" if total_paid > 0 else "UNPAID"
 
                 if balance > 0:
                     result["outstanding_balance"] += balance
 
-        result["children"].append(student_data)
+        result["children"].append(child_data)
 
     return result
 
@@ -166,3 +167,57 @@ def authenticate_parent(db: Session, phone: str, password: str) -> Optional[Pare
         return None
 
     return parent
+
+
+def get_all_parents_with_details(db: Session, skip: int = 0, limit: int = 100) -> List[dict]:
+    """Get all parents with children count and outstanding balance"""
+    parents = get_all_parents(db, skip, limit)
+
+    # Get current session
+    current_session = db.query(Session).filter(Session.is_current == True).first()
+    session_id = current_session.id if current_session else None
+
+    result = []
+    for parent in parents:
+        # Get children count
+        children_count = db.query(Student).filter(Student.parent_id == parent.id).count()
+
+        # Calculate outstanding balance for current session
+        outstanding = 0
+        if session_id:
+            students = db.query(Student).filter(Student.parent_id == parent.id).all()
+            for student in students:
+                enrollment = db.query(Enrollment).filter(
+                    Enrollment.student_id == student.id,
+                    Enrollment.session_id == session_id,
+                    Enrollment.status == "ACTIVE"
+                ).first()
+
+                if enrollment:
+                    fee = db.query(FeeStructure).filter(
+                        FeeStructure.session_id == session_id,
+                        FeeStructure.class_id == enrollment.class_id
+                    ).first()
+
+                    if fee:
+                        total_paid = db.query(func.sum(Payment.amount)).filter(
+                            Payment.enrollment_id == enrollment.id
+                        ).scalar() or 0
+
+                        balance = fee.amount - total_paid
+                        if balance > 0:
+                            outstanding += balance
+
+        result.append({
+            "id": parent.id,
+            "first_name": parent.first_name,
+            "last_name": parent.last_name,
+            "phone": parent.phone,
+            "email": parent.email,
+            "created_at": parent.created_at,
+            "students": db.query(Student).filter(Student.parent_id == parent.id).all(),
+            "children_count": children_count,
+            "outstanding_balance": outstanding
+        })
+
+    return result
