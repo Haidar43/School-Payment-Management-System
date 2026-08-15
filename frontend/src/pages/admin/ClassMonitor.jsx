@@ -1,7 +1,14 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate, useSearchParams } from 'react-router-dom';
-import { getClassPaymentMonitor, getCurrentSession, getSessions } from '../../api/admin';
+import {
+  getClassPaymentMonitor,
+  getCurrentSession,
+  getSessions,
+  getClasses,
+  promoteAllStudents,
+} from '../../api/admin';
 import toast from 'react-hot-toast';
+import Modal from '../../components/common/Modal';
 import {
   ArrowLeft,
   Users,
@@ -11,6 +18,7 @@ import {
   Download,
   Search,
   Filter,
+  ArrowRight,
 } from 'lucide-react';
 import { formatCurrency, formatDate, getStatusBadge } from '../../utils/format';
 import Spinner from '../../components/common/Spinner';
@@ -24,11 +32,19 @@ const ClassMonitor = () => {
   const [loading, setLoading] = useState(true);
   const [classData, setClassData] = useState(null);
   const [sessions, setSessions] = useState([]);
+  const [currentSessionId, setCurrentSessionId] = useState(null);
+  const [classes, setClasses] = useState([]); // Added state
   const [selectedSession, setSelectedSession] = useState('');
   const [statusFilter, setStatusFilter] = useState(
     searchParams.get('filter') || 'ALL'
   );
   const [searchQuery, setSearchQuery] = useState('');
+  const [showPromoteModal, setShowPromoteModal] = useState(false);
+  const [promoteLoading, setPromoteLoading] = useState(false);
+  const [promoteData, setPromoteData] = useState({
+    target_class_id: '',
+    target_session_id: '',
+  });
 
   const statusOptions = [
     { value: 'ALL', label: 'All Students' },
@@ -40,6 +56,7 @@ const ClassMonitor = () => {
 
   useEffect(() => {
     fetchSessions();
+    fetchClasses(); // Added fetch call
   }, []);
 
   useEffect(() => {
@@ -47,6 +64,15 @@ const ClassMonitor = () => {
       fetchClassData();
     }
   }, [selectedSession, statusFilter]);
+
+  const fetchClasses = async () => {
+    try {
+      const response = await getClasses();
+      setClasses(response.data || []);
+    } catch (error) {
+      console.error('Error fetching classes:', error);
+    }
+  };
 
   const fetchSessions = async () => {
     try {
@@ -63,6 +89,33 @@ const ClassMonitor = () => {
     } catch (error) {
       console.error('Error fetching sessions:', error);
       toast.error('Failed to load sessions');
+    }
+  };
+
+  const handlePromoteAll = async () => {
+    if (!promoteData.target_class_id) {
+      toast.error('Please select a target class');
+      return;
+    }
+
+    setPromoteLoading(true);
+    try {
+      const response = await promoteAllStudents(
+        classId,
+        promoteData.target_class_id,
+        promoteData.target_session_id || undefined
+      );
+
+      toast.success(response.data.message);
+      setShowPromoteModal(false);
+      fetchClassData(); // Refresh the page
+    } catch (error) {
+      console.error('Error promoting students:', error);
+      const message =
+        error.response?.data?.detail || 'Failed to promote students';
+      toast.error(message);
+    } finally {
+      setPromoteLoading(false);
     }
   };
 
@@ -105,7 +158,6 @@ const ClassMonitor = () => {
       return;
     }
 
-    // Create print-friendly content
     const printContent = `
       <html>
         <head>
@@ -123,7 +175,9 @@ const ClassMonitor = () => {
         </head>
         <body>
           <h1>${classData?.class_name}</h1>
-          <h2>Unpaid Students List - ${sessions.find(s => s.id === selectedSession)?.name}</h2>
+          <h2>Unpaid Students List - ${
+            sessions.find((s) => s.id === selectedSession)?.name
+          }</h2>
           <table>
             <thead>
               <tr>
@@ -138,7 +192,9 @@ const ClassMonitor = () => {
               </tr>
             </thead>
             <tbody>
-              ${unpaidStudents.map((s, i) => `
+              ${unpaidStudents
+                .map(
+                  (s, i) => `
                 <tr>
                   <td>${i + 1}</td>
                   <td>${s.admission_number}</td>
@@ -149,7 +205,9 @@ const ClassMonitor = () => {
                   <td class="amount">₦${s.balance.toLocaleString()}</td>
                   <td>${s.status}</td>
                 </tr>
-              `).join('')}
+              `
+                )
+                .join('')}
             </tbody>
           </table>
           <div class="total">
@@ -177,7 +235,9 @@ const ClassMonitor = () => {
     return (
       <div className="text-center py-12">
         <AlertCircle className="w-12 h-12 text-text-secondary mx-auto mb-4" />
-        <h3 className="text-lg font-medium text-text-primary">Class not found</h3>
+        <h3 className="text-lg font-medium text-text-primary">
+          Class not found
+        </h3>
         <button
           onClick={() => navigate('/admin/payment-status')}
           className="btn-primary mt-4"
@@ -188,7 +248,6 @@ const ClassMonitor = () => {
     );
   }
 
-  // Calculate stats
   const students = classData.students || [];
   const totalStudents = students.length;
   const paidCount = students.filter((s) => s.status === 'PAID').length;
@@ -196,10 +255,10 @@ const ClassMonitor = () => {
   const unpaidCount = students.filter((s) => s.status === 'UNPAID').length;
   const totalBalance = students.reduce((sum, s) => sum + s.balance, 0);
 
-  // Filter by search
-  const filteredStudents = students.filter((s) =>
-    s.student_name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    s.admission_number.toLowerCase().includes(searchQuery.toLowerCase())
+  const filteredStudents = students.filter(
+    (s) =>
+      s.student_name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      s.admission_number.toLowerCase().includes(searchQuery.toLowerCase())
   );
 
   return (
@@ -231,6 +290,14 @@ const ClassMonitor = () => {
             <Printer className="w-4 h-4" />
             Print Unpaid List
           </button>
+
+          <button
+            onClick={() => setShowPromoteModal(true)}
+            className="btn-primary inline-flex items-center gap-2"
+          >
+            <Users className="w-4 h-4" />
+            Promote All Students
+          </button>
         </div>
       </div>
 
@@ -238,7 +305,9 @@ const ClassMonitor = () => {
       <div className="grid grid-cols-2 sm:grid-cols-5 gap-3">
         <div className="card">
           <p className="text-xs text-text-secondary">Total Students</p>
-          <p className="text-lg font-semibold text-text-primary">{totalStudents}</p>
+          <p className="text-lg font-semibold text-text-primary">
+            {totalStudents}
+          </p>
         </div>
         <div className="card">
           <p className="text-xs text-text-secondary">Paid</p>
@@ -246,11 +315,15 @@ const ClassMonitor = () => {
         </div>
         <div className="card">
           <p className="text-xs text-text-secondary">Partial</p>
-          <p className="text-lg font-semibold text-status-partial">{partialCount}</p>
+          <p className="text-lg font-semibold text-status-partial">
+            {partialCount}
+          </p>
         </div>
         <div className="card">
           <p className="text-xs text-text-secondary">Unpaid</p>
-          <p className="text-lg font-semibold text-status-unpaid">{unpaidCount}</p>
+          <p className="text-lg font-semibold text-status-unpaid">
+            {unpaidCount}
+          </p>
         </div>
         <div className="card">
           <p className="text-xs text-text-secondary">Total Outstanding</p>
@@ -312,8 +385,13 @@ const ClassMonitor = () => {
             <tbody>
               {filteredStudents.length === 0 ? (
                 <tr>
-                  <td colSpan="8" className="text-center py-8 text-text-secondary">
-                    {searchQuery ? 'No students matching search' : 'No students in this class'}
+                  <td
+                    colSpan="8"
+                    className="text-center py-8 text-text-secondary"
+                  >
+                    {searchQuery
+                      ? 'No students matching search'
+                      : 'No students in this class'}
                   </td>
                 </tr>
               ) : (
@@ -334,13 +412,15 @@ const ClassMonitor = () => {
                         {formatCurrency(student.balance)}
                       </td>
                       <td>
-                        <span className={badge.className}>
-                          {badge.label}
-                        </span>
+                        <span className={badge.className}>{badge.label}</span>
                       </td>
                       <td className="text-right">
                         <button
-                          onClick={() => navigate(`/admin/payments/record?student=${student.student_id}`)}
+                          onClick={() =>
+                            navigate(
+                              `/admin/payments/record?student=${student.student_id}`
+                            )
+                          }
                           className="text-sm text-accent hover:text-accent-light font-medium"
                         >
                           Record Payment
@@ -354,6 +434,98 @@ const ClassMonitor = () => {
           </table>
         </div>
       </div>
+
+      {/* Promote All Modal */}
+      <Modal
+        isOpen={showPromoteModal}
+        onClose={() => setShowPromoteModal(false)}
+        title={`Promote All Students from ${classData?.class_name}`}
+        size="md"
+      >
+        <div className="space-y-4">
+          <p className="text-sm text-text-secondary">
+            This will promote all active students from{' '}
+            <strong>{classData?.class_name}</strong> to the selected class for
+            the selected session.
+          </p>
+
+          <Select
+            label="Target Class"
+            value={promoteData.target_class_id}
+            onChange={(e) =>
+              setPromoteData((prev) => ({
+                ...prev,
+                target_class_id: e.target.value,
+              }))
+            }
+            options={classes
+              .filter(
+                (c) =>
+                  String(c.id || c.class?.id) !== String(classId)
+              )
+              .map((c) => ({
+                value: c.id || c.class?.id,
+                label: c.name || c.class?.name,
+              }))}
+            placeholder="Select target class"
+            required
+          />
+
+          <Select
+              label="Target Session"
+              name="target_session_id"
+              value={promoteData.target_session_id}
+              onChange={(e) => setPromoteData(prev => ({
+                ...prev,
+                target_session_id: e.target.value
+              }))}
+              options={sessions
+                .filter(s => s.id !== currentSessionId)  // Remove current session
+                .map(s => ({
+                  value: s.id,
+                  label: s.name,
+                }))}
+              placeholder="Select target session"
+              required
+            />
+
+          <div className="rounded-sm bg-amber-50 border border-status-partial/20 p-3">
+            <p className="text-sm text-status-partial">
+              ⚠️ This action will:
+              <br />• Close all current enrollments
+              <br />• Create new enrollments in target class
+              <br />• All students will be promoted at once
+            </p>
+          </div>
+
+          <div className="flex items-center justify-end gap-3 pt-4 border-t border-border">
+            <button
+              onClick={() => setShowPromoteModal(false)}
+              className="btn-outline"
+              disabled={promoteLoading}
+            >
+              Cancel
+            </button>
+            <button
+              onClick={handlePromoteAll}
+              className="btn-primary inline-flex items-center gap-2"
+              disabled={promoteLoading || !promoteData.target_class_id}
+            >
+              {promoteLoading ? (
+                <>
+                  <Spinner size="sm" />
+                  Promoting...
+                </>
+              ) : (
+                <>
+                  <ArrowRight className="w-4 h-4" />
+                  Promote All
+                </>
+              )}
+            </button>
+          </div>
+        </div>
+      </Modal>
     </div>
   );
 };

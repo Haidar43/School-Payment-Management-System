@@ -5,31 +5,16 @@
   </component>
   <component name="ChangeListManager">
     <list default="true" id="339ea4c7-1625-46b2-a472-1db0fb24a813" name="Changes" comment="">
-      <change afterPath="$PROJECT_DIR$/backend/utils/receipt.py" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/frontend/src/pages/admin/Enrollments.jsx" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/.env" beforeDir="false" afterPath="$PROJECT_DIR$/.env" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/backend/CRUD/class_crud.py" beforeDir="false" afterPath="$PROJECT_DIR$/backend/CRUD/class_crud.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/backend/CRUD/dashboard.py" beforeDir="false" afterPath="$PROJECT_DIR$/backend/CRUD/dashboard.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/backend/CRUD/enrollment.py" beforeDir="false" afterPath="$PROJECT_DIR$/backend/CRUD/enrollment.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/backend/CRUD/fee_structure.py" beforeDir="false" afterPath="$PROJECT_DIR$/backend/CRUD/fee_structure.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/backend/CRUD/payment.py" beforeDir="false" afterPath="$PROJECT_DIR$/backend/CRUD/payment.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/backend/CRUD/reports.py" beforeDir="false" afterPath="$PROJECT_DIR$/backend/CRUD/reports.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/backend/CRUD/session_crud.py" beforeDir="false" afterPath="$PROJECT_DIR$/backend/CRUD/session_crud.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/backend/CRUD/student.py" beforeDir="false" afterPath="$PROJECT_DIR$/backend/CRUD/student.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/backend/crud/__init__.py" beforeDir="false" afterPath="$PROJECT_DIR$/backend/crud/__init__.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/backend/crud/admin.py" beforeDir="false" afterPath="$PROJECT_DIR$/backend/crud/admin.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/backend/crud/parent.py" beforeDir="false" afterPath="$PROJECT_DIR$/backend/crud/parent.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/backend/database/__init__.py" beforeDir="false" afterPath="$PROJECT_DIR$/backend/database/__init__.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/backend/database/models.py" beforeDir="false" afterPath="$PROJECT_DIR$/backend/database/models.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/backend/database/session.py" beforeDir="false" afterPath="$PROJECT_DIR$/backend/database/session.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/backend/main.py" beforeDir="false" afterPath="$PROJECT_DIR$/backend/main.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/backend/routes/admin_routes.py" beforeDir="false" afterPath="$PROJECT_DIR$/backend/routes/admin_routes.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/backend/routes/parent_routes.py" beforeDir="false" afterPath="$PROJECT_DIR$/backend/routes/parent_routes.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/backend/routes/public_routes.py" beforeDir="false" afterPath="$PROJECT_DIR$/backend/routes/public_routes.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/backend/schemas/parent.py" beforeDir="false" afterPath="$PROJECT_DIR$/backend/schemas/parent.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/backend/schemas/class_schema.py" beforeDir="false" afterPath="$PROJECT_DIR$/backend/schemas/class_schema.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/backend/schemas/student.py" beforeDir="false" afterPath="$PROJECT_DIR$/backend/schemas/student.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/backend/utils/__init__.py" beforeDir="false" afterPath="$PROJECT_DIR$/backend/utils/__init__.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/frontend/src/api/admin.js" beforeDir="false" afterPath="$PROJECT_DIR$/frontend/src/api/admin.js" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/frontend/src/components/classes/ClassForm.jsx" beforeDir="false" afterPath="$PROJECT_DIR$/frontend/src/components/classes/ClassForm.jsx" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/frontend/src/components/students/StudentForm.jsx" beforeDir="false" afterPath="$PROJECT_DIR$/frontend/src/components/students/StudentForm.jsx" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/frontend/src/pages/admin/ClassMonitor.jsx" beforeDir="false" afterPath="$PROJECT_DIR$/frontend/src/pages/admin/ClassMonitor.jsx" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/frontend/src/pages/admin/Classes.jsx" beforeDir="false" afterPath="$PROJECT_DIR$/frontend/src/pages/admin/Classes.jsx" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/school_payment.db" beforeDir="false" afterPath="$PROJECT_DIR$/school_payment.db" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -65,18 +50,18 @@
     <option name="hideEmptyMiddlePackages" value="true" />
     <option name="showLibraryContents" value="true" />
   </component>
-  <component name="PropertiesComponent">{
-  &quot;keyToString&quot;: {
-    &quot;ModuleVcsDetector.initialDetectionPerformed&quot;: &quot;true&quot;,
-    &quot;Python.academic.executor&quot;: &quot;Run&quot;,
-    &quot;Python.main.executor&quot;: &quot;Run&quot;,
-    &quot;RunOnceActivity.MCP Project settings loaded&quot;: &quot;true&quot;,
-    &quot;RunOnceActivity.ShowReadmeOnStart&quot;: &quot;true&quot;,
-    &quot;RunOnceActivity.TerminalTabsStorage.copyFrom.TerminalArrangementManager.252&quot;: &quot;true&quot;,
-    &quot;RunOnceActivity.git.unshallow&quot;: &quot;true&quot;,
-    &quot;git-widget-placeholder&quot;: &quot;master&quot;
+  <component name="PropertiesComponent"><![CDATA[{
+  "keyToString": {
+    "ModuleVcsDetector.initialDetectionPerformed": "true",
+    "Python.academic.executor": "Run",
+    "Python.main.executor": "Run",
+    "RunOnceActivity.MCP Project settings loaded": "true",
+    "RunOnceActivity.ShowReadmeOnStart": "true",
+    "RunOnceActivity.TerminalTabsStorage.copyFrom.TerminalArrangementManager.252": "true",
+    "RunOnceActivity.git.unshallow": "true",
+    "git-widget-placeholder": "main"
   }
-}</component>
+}]]></component>
   <component name="RecentsManager">
     <key name="MoveFile.RECENT_KEYS">
       <recent name="C:\Users\user\PycharmProjects\School Management System\backend" />

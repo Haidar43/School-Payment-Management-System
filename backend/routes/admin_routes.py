@@ -263,7 +263,7 @@ def get_students(
 
     # Get current session if not provided
     if not session_id:
-        current_session = get_current_session(db)
+        current_session = session_crud.get_current_session(db)
         session_id = current_session.id if current_session else None
 
     # Build rich response
@@ -305,18 +305,16 @@ def get_student(
 
 @router.post("/students", response_model=StudentResponse, status_code=status.HTTP_201_CREATED)
 def create_student(
-        student_data: StudentCreate,
-        current_admin: Admin = Depends(get_current_admin),
-        db: Session = Depends(get_db)
+    student_data: StudentCreate,
+    current_admin: Admin = Depends(get_current_admin),
+    db: Session = Depends(get_db)
 ):
     """Create a new student"""
-    if student_crud.get_student_by_admission(db, student_data.admission_number):
+    if get_student_by_admission(db, student_data.admission_number):
         raise HTTPException(status_code=400, detail="Admission number already exists")
-    # Check if parent exists
-    if not parent_crud.get_parent_by_id(db, student_data.parent_id):
+    if not get_parent_by_id(db, student_data.parent_id):
         raise HTTPException(status_code=400, detail="Parent not found")
     return student_crud.create_student(db, student_data)
-
 
 @router.put("/students/{student_id}", response_model=StudentResponse)
 def update_student(
@@ -392,29 +390,26 @@ def get_class(
 
 @router.post("/classes", response_model=ClassResponse, status_code=status.HTTP_201_CREATED)
 def create_class(
-        class_data: ClassCreate,
-        current_admin: Admin = Depends(get_current_admin),
-        db: Session = Depends(get_db)
+    class_data: ClassCreate,
+    current_admin: Admin = Depends(get_current_admin),
+    db: Session = Depends(get_db)
 ):
     """Create a new class"""
-    if class_crud.get_class_by_name(db, class_data.name):
+    if get_class_by_name(db, class_data.name):
         raise HTTPException(status_code=400, detail="Class name already exists")
     return class_crud.create_class(db, class_data)
 
 
-@router.put("/classes/{class_id}", response_model=ClassResponse)
-def update_class(
-        class_id: int,
-        class_data: ClassUpdate,
-        current_admin: Admin = Depends(get_current_admin),
-        db: Session = Depends(get_db)
+@router.post("/classes", response_model=ClassResponse, status_code=status.HTTP_201_CREATED)
+def create_class(
+    class_data: ClassCreate,
+    current_admin: Admin = Depends(get_current_admin),
+    db: Session = Depends(get_db)
 ):
-    """Update a class"""
-    db_class = class_crud.update_class(db, class_id, class_data)
-    if not db_class:
-        raise HTTPException(status_code=404, detail="Class not found")
-    return db_class
-
+    """Create a new class"""
+    if get_class_by_name(db, class_data.name):
+        raise HTTPException(status_code=400, detail="Class name already exists")
+    return class_crud.create_class(db, class_data)
 
 @router.delete("/classes/{class_id}", status_code=status.HTTP_204_NO_CONTENT)
 def delete_class(
@@ -427,6 +422,119 @@ def delete_class(
     if not db_class:
         raise HTTPException(status_code=404, detail="Class not found")
     return {"message": "Class deleted successfully"}
+
+
+@router.post("/classes/{class_id}/promote-all")
+def promote_all_students(
+        class_id: int,
+        target_class_id: int,
+        target_session_id: Optional[int] = None,
+        current_admin: Admin = Depends(get_current_admin),
+        db: Session = Depends(get_db)
+):
+    # Get source class
+    source_class = class_crud.get_class_by_id(db, class_id)
+    if not source_class:
+        raise HTTPException(status_code=404, detail="Source class not found")
+
+    # Get target class
+    target_class = class_crud.get_class_by_id(db, target_class_id)
+    if not target_class:
+        raise HTTPException(status_code=404, detail="Target class not found")
+
+    # Get CURRENT session (where students are enrolled now)
+    current_session = session_crud.get_current_session(db)
+    if not current_session:
+        raise HTTPException(status_code=400, detail="No current session set")
+
+    # Get target session (default to current if not provided)
+    if not target_session_id:
+        target_session_id = current_session.id
+    else:
+        target_session = session_crud.get_session_by_id(db, target_session_id)
+        if not target_session:
+            raise HTTPException(status_code=404, detail="Target session not found")
+
+    # Check if fee structure exists for target class + target session
+    fee = db.query(FeeStructure).filter(
+        FeeStructure.session_id == target_session_id,
+        FeeStructure.class_id == target_class_id
+    ).first()
+
+    if not fee:
+        raise HTTPException(
+            status_code=400,
+            detail=f"No fee structure found for {target_class.name} in target session"
+        )
+
+    # CRITICAL FIX: Find students in source class + CURRENT session
+    enrollments = db.query(Enrollment).filter(
+        Enrollment.class_id == class_id,
+        Enrollment.session_id == current_session.id,  # ← FIXED: Use current session
+        Enrollment.status == "ACTIVE"
+    ).all()
+
+    if not enrollments:
+        raise HTTPException(
+            status_code=400,
+            detail=f"No active students found in {source_class.name} for current session"
+        )
+
+    promoted = []
+    failed = []
+
+    for enrollment in enrollments:
+        try:
+            # Close current enrollment (keep history)
+            # enrollment.status = "COMPLETED"
+            # db.add(enrollment)
+
+            # Check if already enrolled in target session
+            existing = db.query(Enrollment).filter(
+                Enrollment.student_id == enrollment.student_id,
+                Enrollment.session_id == target_session_id
+            ).first()
+
+            if existing:
+                # Update existing enrollment to target class
+                existing.class_id = target_class_id
+                existing.status = "ACTIVE"
+                db.add(existing)
+            else:
+                # Create new enrollment in target class + target session
+                new_enrollment = Enrollment(
+                    student_id=enrollment.student_id,
+                    class_id=target_class_id,
+                    session_id=target_session_id,
+                    status="ACTIVE"
+                )
+                db.add(new_enrollment)
+
+            promoted.append({
+                "student_id": enrollment.student_id,
+                "student_name": f"{enrollment.student.first_name} {enrollment.student.last_name}"
+            })
+
+        except Exception as e:
+            failed.append({
+                "student_id": enrollment.student_id,
+                "error": str(e)
+            })
+
+    db.commit()
+
+    return {
+        "message": f"Promoted {len(promoted)} students from {source_class.name} to {target_class.name}",
+        "source_class": source_class.name,
+        "source_session": current_session.name,
+        "target_class": target_class.name,
+        "target_session": session_crud.get_session_by_id(db, target_session_id).name,
+        "promoted": promoted,
+        "failed": failed,
+        "total": len(enrollments),
+        "success_count": len(promoted),
+        "failed_count": len(failed)
+    }
 
 
 # ============================================================

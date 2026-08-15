@@ -9,6 +9,7 @@ class StudentCreate(BaseModel):
     first_name: str
     last_name: str
     parent_id: int
+    class_id: Optional[int] = None  # ADD THIS - optional class for auto-enrollment
 
 
 # Schema for updating a student
@@ -32,12 +33,13 @@ class StudentResponse(BaseModel):
         from_attributes = True
 
 
-# Schema for student summary (used in lists and dashboards)
+# Schema for student summary
 class StudentSummary(BaseModel):
     id: int
     admission_number: str
     first_name: str
     last_name: str
-    parent_name: Optional[str] = None  # Will be populated from parent relationship
+    parent_name: Optional[str] = None
+
     class Config:
         from_attributes = True

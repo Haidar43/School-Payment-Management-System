@@ -13,8 +13,30 @@ def create_class(db: Session, class_data: ClassCreate) -> Class:
     db.add(db_class)
     db.commit()
     db.refresh(db_class)
-    return db_class
 
+    # If fee is provided, create fee structure for current session
+    if class_data.fee:
+        from .session_crud import get_current_session
+        from .fee_structure import create_fee_structure
+        from ..schemas.fee_structure import FeeStructureCreate
+
+        current_session = get_current_session(db)
+        if current_session:
+            # Check if fee structure already exists
+            existing = db.query(FeeStructure).filter(
+                FeeStructure.session_id == current_session.id,
+                FeeStructure.class_id == db_class.id
+            ).first()
+
+            if not existing:
+                fee_data = FeeStructureCreate(
+                    session_id=current_session.id,
+                    class_id=db_class.id,
+                    amount=float(class_data.fee)  # Ensure it's float
+                )
+                create_fee_structure(db, fee_data)
+
+    return db_class
 
 # ============ READ ============
 

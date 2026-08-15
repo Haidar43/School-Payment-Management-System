@@ -19,6 +19,41 @@ def create_student(db: Session, student_data: StudentCreate) -> Student:
     db.add(db_student)
     db.commit()
     db.refresh(db_student)
+
+    # If class_id is provided, auto-enroll student
+    if student_data.class_id:
+        from .session_crud import get_current_session
+        from .enrollment import create_enrollment
+        from ..schemas.enrollment import EnrollmentCreate
+
+        current_session = get_current_session(db)
+        if current_session:
+            # Check if enrollment already exists
+            existing = db.query(Enrollment).filter(
+                Enrollment.student_id == db_student.id,
+                Enrollment.session_id == current_session.id
+            ).first()
+
+            if not existing:
+                # Check if fee structure exists
+                fee = db.query(FeeStructure).filter(
+                    FeeStructure.session_id == current_session.id,
+                    FeeStructure.class_id == student_data.class_id
+                ).first()
+
+                if fee:
+                    enrollment_data = EnrollmentCreate(
+                        student_id=db_student.id,
+                        class_id=student_data.class_id,
+                        session_id=current_session.id,
+                        status="ACTIVE"
+                    )
+                    create_enrollment(db, enrollment_data)
+                else:
+                    # Log but don't fail - admin can enroll later
+                    print(
+                        f"Warning: No fee structure found for class {student_data.class_id} in session {current_session.id}")
+
     return db_student
 
 

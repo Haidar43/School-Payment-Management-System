@@ -31,6 +31,15 @@ export const createClass = (data) => api.post('/api/admin/classes', data);
 export const updateClass = (id, data) => api.put(`/api/admin/classes/${id}`, data);
 export const deleteClass = (id) => api.delete(`/api/admin/classes/${id}`);
 
+export const promoteAllStudents = (classId, targetClassId, targetSessionId) => {
+  const params = new URLSearchParams();
+  params.append('target_class_id', targetClassId);
+  if (targetSessionId) {
+    params.append('target_session_id', targetSessionId);
+  }
+  return api.post(`/api/admin/classes/${classId}/promote-all?${params.toString()}`);
+};
+
 // Sessions
 export const getSessions = () => api.get('/api/admin/sessions');
 export const getCurrentSession = () => api.get('/api/admin/sessions/current');

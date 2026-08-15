@@ -1,4 +1,5 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, } from 'react';
+import { useParams, useNavigate } from 'react-router-dom';
 import { getClasses, createClass, updateClass, deleteClass } from '../../api/admin';
 import toast from 'react-hot-toast';
 import {
@@ -21,6 +22,7 @@ const Classes = () => {
   const [showModal, setShowModal] = useState(false);
   const [editingClass, setEditingClass] = useState(null);
   const [deleteConfirm, setDeleteConfirm] = useState(null);
+  const navigate = useNavigate();
 
   useEffect(() => {
     fetchClasses();
@@ -114,7 +116,8 @@ const Classes = () => {
             const classData = cls.class || cls;
             const stats = cls;
             return (
-                  <div key={classData.id}
+                  <div
+                      key={classData.id}
                       className="card hover:border-accent transition-colors cursor-pointer"
                       onClick={() => navigate(`/admin/payment-status/${classData.id}`)}
                     >
@@ -146,10 +149,12 @@ const Classes = () => {
 
                 <div className="space-y-2">
                   <div className="flex items-center justify-between text-sm">
-                    <span className="text-text-secondary">Fee</span>
-                    <span className="font-medium text-text-primary">
-                      {stats.current_session_fee ? formatCurrency(stats.current_session_fee) : 'Not set'}
-                    </span>
+                    <div className="flex items-center justify-between text-sm">
+                      <span className="text-text-secondary">Fee</span>
+                      <span className="font-medium text-text-primary">
+                        {stats.current_session_fee ? formatCurrency(stats.current_session_fee) : 'Not set'}
+                      </span>
+                    </div>
                   </div>
                   <div className="flex items-center justify-between text-sm">
                     <span className="text-text-secondary flex items-center gap-1">

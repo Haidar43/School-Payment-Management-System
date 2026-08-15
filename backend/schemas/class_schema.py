@@ -5,6 +5,7 @@ from datetime import datetime
 # Schema for creating a new class
 class ClassCreate(BaseModel):
     name: str
+    fee: Optional[float] = None  # ADD THIS - optional fee amount
 
 # Schema for updating a class
 class ClassUpdate(BaseModel):
@@ -19,7 +20,7 @@ class ClassResponse(BaseModel):
     class Config:
         from_attributes = True
 
-# Schema for class with additional stats (used in payment status page)
+# Schema for class with additional stats
 class ClassWithStats(ClassResponse):
     student_count: Optional[int] = 0
     paid_count: Optional[int] = 0
