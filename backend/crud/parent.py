@@ -4,6 +4,7 @@ from ..database.models import Parent, Student, Enrollment, Payment, FeeStructure
 from ..schemas.parent import ParentCreate, ParentUpdate
 from ..utils.auth import hash_password, verify_password
 from typing import Optional, List
+from ..utils.paystack import validate_nin, create_customer
 
 
 # ============ CREATE ============
@@ -17,13 +18,95 @@ def create_parent(db: Session, parent_data: ParentCreate) -> Parent:
         last_name=parent_data.last_name,
         phone=parent_data.phone,
         email=parent_data.email,
-        password=hashed_password
+        password=hashed_password,
+        nin=parent_data.nin,  # ADD THIS
+        nin_validated=False,  # ADD THIS - default False
+        paystack_customer_code=None  # ADD THIS
     )
 
     db.add(db_parent)
     db.commit()
     db.refresh(db_parent)
+
+    # Try to validate NIN and create customer (if NIN provided)
+    if parent_data.nin:
+        try:
+            # Validate NIN (skips in test/dev mode)
+            validation_result = validate_nin(parent_data.nin)
+
+            if validation_result.get("success"):
+                db_parent.nin_validated = True
+
+                # Create Paystack customer
+                customer_result = create_customer(
+                    first_name=parent_data.first_name,
+                    last_name=parent_data.last_name,
+                    phone=parent_data.phone,
+                    email=parent_data.email
+                )
+
+                if customer_result.get("success"):
+                    db_parent.paystack_customer_code = customer_result.get("customer_code")
+
+                db.commit()
+                db.refresh(db_parent)
+
+        except Exception as e:
+            # Don't fail parent creation if validation fails
+            print(f"Error validating NIN or creating customer: {e}")
+
     return db_parent
+
+
+def validate_parent_nin(db: Session, parent_id: int) -> Optional[dict]:
+    """Validate a parent's NIN and create Paystack customer"""
+    parent = get_parent_by_id(db, parent_id)
+    if not parent:
+        return {"success": False, "message": "Parent not found"}
+
+    if not parent.nin:
+        return {"success": False, "message": "No NIN provided for this parent"}
+
+    # Validate NIN
+    validation_result = validate_nin(parent.nin)
+
+    if not validation_result.get("success"):
+        return {
+            "success": False,
+            "message": validation_result.get("message", "NIN validation failed")
+        }
+
+    # NIN is valid - update parent
+    parent.nin_validated = True
+
+    # Create Paystack customer if not already created
+    if not parent.paystack_customer_code:
+        customer_result = create_customer(
+            first_name=parent.first_name,
+            last_name=parent.last_name,
+            phone=parent.phone,
+            email=parent.email
+        )
+
+        if customer_result.get("success"):
+            parent.paystack_customer_code = customer_result.get("customer_code")
+        else:
+            return {
+                "success": False,
+                "message": customer_result.get("message", "Failed to create customer")
+            }
+
+    db.commit()
+    db.refresh(parent)
+
+    return {
+        "success": True,
+        "message": "NIN validated successfully",
+        "data": {
+            "nin_validated": parent.nin_validated,
+            "paystack_customer_code": parent.paystack_customer_code
+        }
+    }
 
 
 # ============ READ ============

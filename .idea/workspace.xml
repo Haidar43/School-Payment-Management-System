@@ -5,16 +5,23 @@
   </component>
   <component name="ChangeListManager">
     <list default="true" id="339ea4c7-1625-46b2-a472-1db0fb24a813" name="Changes" comment="">
+      <change afterPath="$PROJECT_DIR$/backend/routes/webhook_routes.py" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/backend/utils/paystack.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/.env" beforeDir="false" afterPath="$PROJECT_DIR$/.env" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/backend/crud/parent.py" beforeDir="false" afterPath="$PROJECT_DIR$/backend/crud/parent.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/backend/database/models.py" beforeDir="false" afterPath="$PROJECT_DIR$/backend/database/models.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/backend/main.py" beforeDir="false" afterPath="$PROJECT_DIR$/backend/main.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/backend/routes/__init__.py" beforeDir="false" afterPath="$PROJECT_DIR$/backend/routes/__init__.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/backend/routes/admin_routes.py" beforeDir="false" afterPath="$PROJECT_DIR$/backend/routes/admin_routes.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/backend/schemas/class_schema.py" beforeDir="false" afterPath="$PROJECT_DIR$/backend/schemas/class_schema.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/backend/schemas/parent.py" beforeDir="false" afterPath="$PROJECT_DIR$/backend/schemas/parent.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/backend/schemas/student.py" beforeDir="false" afterPath="$PROJECT_DIR$/backend/schemas/student.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/frontend/src/api/admin.js" beforeDir="false" afterPath="$PROJECT_DIR$/frontend/src/api/admin.js" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/frontend/src/components/classes/ClassForm.jsx" beforeDir="false" afterPath="$PROJECT_DIR$/frontend/src/components/classes/ClassForm.jsx" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/frontend/src/components/parents/ParentForm.jsx" beforeDir="false" afterPath="$PROJECT_DIR$/frontend/src/components/parents/ParentForm.jsx" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/frontend/src/components/students/StudentForm.jsx" beforeDir="false" afterPath="$PROJECT_DIR$/frontend/src/components/students/StudentForm.jsx" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/frontend/src/pages/admin/ClassMonitor.jsx" beforeDir="false" afterPath="$PROJECT_DIR$/frontend/src/pages/admin/ClassMonitor.jsx" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/frontend/src/pages/admin/Classes.jsx" beforeDir="false" afterPath="$PROJECT_DIR$/frontend/src/pages/admin/Classes.jsx" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/school_payment.db" beforeDir="false" afterPath="$PROJECT_DIR$/school_payment.db" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/frontend/src/pages/admin/ParentProfile.jsx" beforeDir="false" afterPath="$PROJECT_DIR$/frontend/src/pages/admin/ParentProfile.jsx" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/frontend/src/pages/admin/StudentProfile.jsx" beforeDir="false" afterPath="$PROJECT_DIR$/frontend/src/pages/admin/StudentProfile.jsx" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/school_payment.db" beforeDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />

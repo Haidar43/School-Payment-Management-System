@@ -107,7 +107,7 @@ const StudentForm = ({ student, onSuccess, onCancel }) => {
         toast.success('Student updated successfully');
       } else {
         await createStudent(data);
-        toast.success('Student created and enrolled successfully');
+        toast.success('Student created and enrolled successfully, Virtual account will be generated automatically.');
       }
       onSuccess();
     } catch (error) {

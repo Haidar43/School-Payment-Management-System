@@ -242,6 +242,22 @@ def delete_parent_route(
     return {"message": "Parent deleted successfully"}
 
 
+@router.post("/parents/{parent_id}/validate-nin")
+def validate_parent_nin_endpoint(
+        parent_id: int,
+        current_admin: Admin = Depends(get_current_admin),
+        db: Session = Depends(get_db)
+):
+    """Validate a parent's NIN and create Paystack customer"""
+    result = parent_crud.validate_parent_nin(db, parent_id)
+    if not result:
+        raise HTTPException(status_code=404, detail="Parent not found")
+
+    if not result.get("success"):
+        raise HTTPException(status_code=400, detail=result.get("message"))
+
+    return result
+
 # ============================================================
 # STUDENT MANAGEMENT
 # ============================================================
@@ -359,6 +375,23 @@ def promote_student(
         raise HTTPException(status_code=400, detail=result["error"])
     return result
 
+
+@router.post("/students/{student_id}/generate-dva")
+def generate_student_dva(
+        student_id: int,
+        current_admin: Admin = Depends(get_current_admin),
+        db: Session = Depends(get_db)
+):
+    """Generate a dedicated virtual account for a student"""
+    result = student_crud.generate_dva_for_student(db, student_id)
+
+    if not result:
+        raise HTTPException(status_code=404, detail="Student not found")
+
+    if not result.get("success"):
+        raise HTTPException(status_code=400, detail=result.get("message"))
+
+    return result
 
 # ============================================================
 # CLASS MANAGEMENT

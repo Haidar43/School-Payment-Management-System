@@ -3,6 +3,8 @@ from sqlalchemy import func, or_
 from ..database.models import Student, Parent, Enrollment, Payment, FeeStructure, AcademicSession, Class
 from ..schemas.student import StudentCreate, StudentUpdate
 from typing import Optional, List
+from .parent import get_parent_by_id
+from ..utils.paystack import create_customer, assign_dva_to_student
 
 
 # ============ CREATE ============
@@ -28,14 +30,12 @@ def create_student(db: Session, student_data: StudentCreate) -> Student:
 
         current_session = get_current_session(db)
         if current_session:
-            # Check if enrollment already exists
             existing = db.query(Enrollment).filter(
                 Enrollment.student_id == db_student.id,
                 Enrollment.session_id == current_session.id
             ).first()
 
             if not existing:
-                # Check if fee structure exists
                 fee = db.query(FeeStructure).filter(
                     FeeStructure.session_id == current_session.id,
                     FeeStructure.class_id == student_data.class_id
@@ -49,13 +49,92 @@ def create_student(db: Session, student_data: StudentCreate) -> Student:
                         status="ACTIVE"
                     )
                     create_enrollment(db, enrollment_data)
-                else:
-                    # Log but don't fail - admin can enroll later
-                    print(
-                        f"Warning: No fee structure found for class {student_data.class_id} in session {current_session.id}")
+
+    # Generate DVA for student (after parent's NIN is validated)
+    generate_dva_for_student(db, db_student.id)
 
     return db_student
 
+
+def generate_dva_for_student(db: Session, student_id: int) -> Optional[dict]:
+    """
+    Generate a dedicated virtual account for a student.
+    Requires parent's NIN to be validated and customer created.
+    """
+    student = get_student_by_id(db, student_id)
+    if not student:
+        return {"success": False, "message": "Student not found"}
+
+    # Check if student already has DVA
+    if student.dva:
+        return {
+            "success": True,
+            "message": "Student already has a DVA",
+            "data": {
+                "account_number": student.dva,
+                "account_name": student.dva_account_name
+            }
+        }
+
+    # Get parent
+    parent = get_parent_by_id(db, student.parent_id)
+    if not parent:
+        return {"success": False, "message": "Parent not found"}
+
+    # Check if parent has customer code
+    if not parent.paystack_customer_code:
+        # Try to create customer for parent
+        if parent.nin_validated:
+            customer_result = create_customer(
+                first_name=parent.first_name,
+                last_name=parent.last_name,
+                phone=parent.phone,
+                email=parent.email
+            )
+
+            if customer_result.get("success"):
+                parent.paystack_customer_code = customer_result.get("customer_code")
+                db.commit()
+            else:
+                return {
+                    "success": False,
+                    "message": "Failed to create Paystack customer for parent"
+                }
+        else:
+            return {
+                "success": False,
+                "message": "Parent NIN not validated. Please validate parent NIN first."
+            }
+
+    # Generate DVA for student
+    student_name = f"{student.first_name} {student.last_name}"
+    result = assign_dva_to_student(
+        parent_customer_code=parent.paystack_customer_code,
+        student_name=student_name,
+        student_admission=student.admission_number
+    )
+
+    if result.get("success"):
+        student.dva = result.get("account_number")
+        student.dva_account_name = result.get("account_name")
+        student.dva_customer_code = result.get("customer_code")
+        db.commit()
+        db.refresh(student)
+
+        return {
+            "success": True,
+            "message": "DVA generated successfully",
+            "data": {
+                "account_number": result.get("account_number"),
+                "account_name": result.get("account_name"),
+                "bank_name": result.get("bank_name")
+            }
+        }
+    else:
+        return {
+            "success": False,
+            "message": result.get("message", "Failed to generate DVA")
+        }
 
 # ============ READ ============
 

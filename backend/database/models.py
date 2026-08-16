@@ -35,8 +35,11 @@ class Parent(Base):
     password = Column(String, nullable=False)
     created_at = Column(DateTime, default=datetime.utcnow)
 
-    students = relationship("Student", back_populates="parent")
+    nin = Column(String, nullable=True)  # National Identification Number
+    nin_validated = Column(Boolean, default=False)  # Whether NIN is verified
+    paystack_customer_code = Column(String, nullable=True)  # Paystack customer code
 
+    students = relationship("Student", back_populates="parent")
 
 # =========================================================
 # AcademicSession (RENAMED from "Session")
@@ -85,10 +88,13 @@ class Student(Base):
     parent_id = Column(Integer, ForeignKey("parents.id"), nullable=False)
     created_at = Column(DateTime, default=datetime.utcnow)
 
+    # NEW FIELDS - Add these
+    dva = Column(String, nullable=True)  # Dedicated Virtual Account Number
+    dva_customer_code = Column(String, nullable=True)  # Paystack customer code for this student
+    dva_account_name = Column(String, nullable=True)  # Account name (for display)
+
     parent = relationship("Parent", back_populates="students")
     enrollments = relationship("Enrollment", back_populates="student")
-
-
 # =========================================================
 # Fee Structure
 # =========================================================

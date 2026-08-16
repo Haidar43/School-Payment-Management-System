@@ -2,7 +2,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from .database.session import create_tables
-from .routes import admin_router, parent_router, public_router
+from .routes import admin_router, parent_router, public_router, webhook_router
 
 # Create database tables
 create_tables()
@@ -36,6 +36,7 @@ app.add_middleware(
 app.include_router(public_router)
 app.include_router(admin_router)
 app.include_router(parent_router)
+app.include_router(webhook_router)
 
 # Root endpoint
 @app.get("/")

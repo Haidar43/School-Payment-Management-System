@@ -15,6 +15,9 @@ export const getParent = (id) => api.get(`/api/admin/parents/${id}`);
 export const createParent = (data) => api.post('/api/admin/parents', data);
 export const updateParent = (id, data) => api.put(`/api/admin/parents/${id}`, data);
 export const deleteParent = (id) => api.delete(`/api/admin/parents/${id}`);
+export const validateParentNIN = (parentId) => {
+  return api.post(`/api/admin/parents/${parentId}/validate-nin`);
+};
 
 // Students
 export const getStudents = (params) => api.get('/api/admin/students', { params });
@@ -23,6 +26,9 @@ export const createStudent = (data) => api.post('/api/admin/students', data);
 export const updateStudent = (id, data) => api.put(`/api/admin/students/${id}`, data);
 export const deleteStudent = (id) => api.delete(`/api/admin/students/${id}`);
 export const promoteStudent = (id, data) => api.post(`/api/admin/students/${id}/promote`, data);
+export const generateStudentDVA = (studentId) => {
+  return api.post(`/api/admin/students/${studentId}/generate-dva`);
+};
 
 // Classes
 export const getClasses = (params) => api.get('/api/admin/classes', { params });

@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { getStudent, deleteStudent, promoteStudent } from '../../api/admin';
+import { generateStudentDVA } from '../../api/admin';
 import toast from 'react-hot-toast';
 import {
   ArrowLeft,
@@ -33,6 +34,7 @@ const StudentProfile = () => {
   const [student, setStudent] = useState(null);
   const [showPromoteModal, setShowPromoteModal] = useState(false);
   const [deleteConfirm, setDeleteConfirm] = useState(null);
+  const [generatingDVA, setGeneratingDVA] = useState(false);
 
   useEffect(() => {
     fetchStudent();
@@ -62,6 +64,21 @@ const StudentProfile = () => {
       toast.error('Failed to delete student');
     }
     setDeleteConfirm(null);
+  };
+
+  const handleGenerateDVA = async () => {
+  setGeneratingDVA(true);
+  try {
+    const response = await generateStudentDVA(id);
+    toast.success('Virtual account generated successfully!');
+    fetchStudent();
+  } catch (error) {
+    console.error('Error generating DVA:', error);
+    const message = error.response?.data?.detail || 'Failed to generate virtual account';
+    toast.error(message);
+  } finally {
+    setGeneratingDVA(false);
+   }
   };
 
   const handlePromoteSuccess = () => {
@@ -326,6 +343,71 @@ const StudentProfile = () => {
           </div>
         </div>
       </div>
+
+      {/* Virtual Account */}
+        <div className="card">
+          <h2 className="text-sm font-medium text-text-secondary mb-4">Virtual Account</h2>
+
+          {student.dva ? (
+            <div className="space-y-2">
+              <div className="bg-green-50 border border-status-paid/20 rounded-sm p-4">
+                <p className="text-sm text-status-paid font-medium">Account Generated ✅</p>
+                <div className="mt-2 grid grid-cols-2 gap-4">
+                  <div>
+                    <p className="text-xs text-text-secondary">Account Number</p>
+                    <p className="text-lg font-bold text-text-primary font-mono">{student.dva}</p>
+                  </div>
+                  <div>
+                    <p className="text-xs text-text-secondary">Account Name</p>
+                    <p className="text-sm font-medium text-text-primary">{student.dva_account_name || '-'}</p>
+                  </div>
+                  <div>
+                    <p className="text-xs text-text-secondary">Bank</p>
+                    <p className="text-sm font-medium text-text-primary">{student.dva_bank_name || 'GTBank'}</p>
+                  </div>
+                  <div>
+                    <p className="text-xs text-text-secondary">Status</p>
+                    <p className="text-sm font-medium text-status-paid">Active</p>
+                  </div>
+                </div>
+              </div>
+            </div>
+          ) : (
+            <div className="space-y-3">
+              <div className="bg-amber-50 border border-status-partial/20 rounded-sm p-4">
+                <p className="text-sm text-status-partial">
+                  No virtual account generated yet.
+                </p>
+                {student.parent?.nin_validated ? (
+                  <p className="text-sm text-text-secondary mt-1">
+                    Parent NIN is validated. Click the button below to generate an account.
+                  </p>
+                ) : (
+                  <p className="text-sm text-text-secondary mt-1">
+                    ⚠️ Parent NIN needs to be validated first. Go to the parent's profile to validate.
+                  </p>
+                )}
+              </div>
+              <button
+                onClick={handleGenerateDVA}
+                className="btn-accent inline-flex items-center gap-2"
+                disabled={generatingDVA || !student.parent?.nin_validated}
+              >
+                {generatingDVA ? (
+                  <>
+                    <Spinner size="sm" />
+                    Generating...
+                  </>
+                ) : (
+                  <>
+                    <CreditCard className="w-4 h-4" />
+                    Generate Virtual Account
+                  </>
+                )}
+              </button>
+            </div>
+          )}
+        </div>
 
       {/* Current Enrollment */}
       <div className="card">

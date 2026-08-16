@@ -1,79 +1,81 @@
-import React, { useEffect, useState } from "react";
-import toast from "react-hot-toast";
-import { createParent, updateParent } from "../../api/admin";
-import Input from "../common/Input";
-import Spinner from "../common/Spinner";
+import React, { useState } from 'react';
+import { createParent, updateParent } from '../../api/admin';
+import toast from 'react-hot-toast';
+import Input from '../common/Input';
+import Spinner from '../common/Spinner';
 
 const ParentForm = ({ parent, onSuccess, onCancel }) => {
   const [loading, setLoading] = useState(false);
-  const [errors, setErrors] = useState({});
   const [formData, setFormData] = useState({
-    first_name: "",
-    last_name: "",
-    phone: "",
-    email: "",
-    password: ""
+    first_name: parent?.first_name || '',
+    last_name: parent?.last_name || '',
+    phone: parent?.phone || '',
+    email: parent?.email || '',
+    nin: parent?.nin || '',  // ADD THIS
+    password: '',
   });
+  const [errors, setErrors] = useState({});
 
-  useEffect(() => {
-    if (parent) {
-      setFormData({
-        first_name: parent.first_name || "",
-        last_name: parent.last_name || "",
-        phone: parent.phone || "",
-        email: parent.email || "",
-        password: ""
-      });
-    }
-  }, [parent]);
-
-  const handleChange = (event) => {
-    const { name, value } = event.target;
-    setFormData((current) => ({ ...current, [name]: value }));
+  const handleChange = (e) => {
+    const { name, value } = e.target;
+    setFormData((prev) => ({ ...prev, [name]: value }));
     if (errors[name]) {
-      setErrors((current) => ({ ...current, [name]: "" }));
+      setErrors((prev) => ({ ...prev, [name]: '' }));
     }
   };
 
   const validateForm = () => {
-    const nextErrors = {};
+    const newErrors = {};
 
-    if (!formData.first_name.trim()) nextErrors.first_name = "First name is required";
-    if (!formData.last_name.trim()) nextErrors.last_name = "Last name is required";
-    if (!formData.phone.trim()) nextErrors.phone = "Phone is required";
-    if (!parent && !formData.password.trim()) nextErrors.password = "Password is required";
+    if (!formData.first_name) {
+      newErrors.first_name = 'First name is required';
+    }
+    if (!formData.last_name) {
+      newErrors.last_name = 'Last name is required';
+    }
+    if (!formData.phone) {
+      newErrors.phone = 'Phone number is required';
+    } else if (formData.phone.replace(/\s/g, '').length < 10) {
+      newErrors.phone = 'Please enter a valid phone number';
+    }
+    if (!parent && !formData.password) {
+      newErrors.password = 'Password is required';
+    } else if (!parent && formData.password.length < 6) {
+      newErrors.password = 'Password must be at least 6 characters';
+    }
 
-    setErrors(nextErrors);
-    return Object.keys(nextErrors).length === 0;
+    setErrors(newErrors);
+    return Object.keys(newErrors).length === 0;
   };
 
-  const handleSubmit = async (event) => {
-    event.preventDefault();
-    if (!validateForm()) return;
+  const handleSubmit = async (e) => {
+    e.preventDefault();
 
-    const payload = {
-      first_name: formData.first_name.trim(),
-      last_name: formData.last_name.trim(),
-      phone: formData.phone.trim(),
-      email: formData.email.trim() || null
-    };
-
-    if (formData.password.trim()) {
-      payload.password = formData.password;
+    if (!validateForm()) {
+      return;
     }
 
     setLoading(true);
     try {
+      const data = {
+        first_name: formData.first_name.trim(),
+        last_name: formData.last_name.trim(),
+        phone: formData.phone.trim(),
+        email: formData.email?.trim() || undefined,
+        nin: formData.nin?.trim() || undefined,  // ADD THIS
+      };
+
       if (parent) {
-        await updateParent(parent.id, payload);
-        toast.success("Parent updated successfully");
+        await updateParent(parent.id, data);
+        toast.success('Parent updated successfully');
       } else {
-        await createParent(payload);
-        toast.success("Parent created successfully");
+        await createParent({ ...data, password: formData.password });
+        toast.success('Parent created successfully');
       }
-      onSuccess?.();
+      onSuccess();
     } catch (error) {
-      const message = error.response?.data?.detail || "Failed to save parent";
+      console.error('Error saving parent:', error);
+      const message = error.response?.data?.detail || 'Failed to save parent';
       toast.error(message);
     } finally {
       setLoading(false);
@@ -90,6 +92,7 @@ const ParentForm = ({ parent, onSuccess, onCancel }) => {
           onChange={handleChange}
           error={errors.first_name}
           required
+          placeholder="John"
         />
         <Input
           label="Last Name"
@@ -98,49 +101,74 @@ const ParentForm = ({ parent, onSuccess, onCancel }) => {
           onChange={handleChange}
           error={errors.last_name}
           required
+          placeholder="Doe"
         />
       </div>
 
       <Input
-        label="Phone"
+        label="Phone Number"
         name="phone"
         value={formData.phone}
         onChange={handleChange}
         error={errors.phone}
         required
+        placeholder="+234 801 234 5678"
       />
+
       <Input
-        label="Email"
+        label="Email Address"
         name="email"
         type="email"
         value={formData.email}
         onChange={handleChange}
         error={errors.email}
-      />
-      <Input
-        label={parent ? "New Password" : "Password"}
-        name="password"
-        type="password"
-        value={formData.password}
-        onChange={handleChange}
-        error={errors.password}
-        required={!parent}
+        placeholder="john@example.com"
       />
 
+      <Input
+        label="NIN (National Identification Number)"
+        name="nin"
+        value={formData.nin}
+        onChange={handleChange}
+        error={errors.nin}
+        placeholder="12345678901"
+        helperText="Required for virtual account generation"
+      />
+
+      {!parent && (
+        <Input
+          label="Password"
+          name="password"
+          type="password"
+          value={formData.password}
+          onChange={handleChange}
+          error={errors.password}
+          required
+          placeholder="Minimum 6 characters"
+        />
+      )}
+
       <div className="flex items-center justify-end gap-3 pt-4 border-t border-border">
-        <button type="button" onClick={onCancel} className="btn-outline" disabled={loading}>
+        <button
+          type="button"
+          onClick={onCancel}
+          className="btn-outline"
+          disabled={loading}
+        >
           Cancel
         </button>
-        <button type="submit" className="btn-primary inline-flex items-center gap-2" disabled={loading}>
+        <button
+          type="submit"
+          className="btn-primary inline-flex items-center gap-2"
+          disabled={loading}
+        >
           {loading ? (
             <>
               <Spinner size="sm" />
               Saving...
             </>
-          ) : parent ? (
-            "Update Parent"
           ) : (
-            "Create Parent"
+            parent ? 'Update Parent' : 'Create Parent'
           )}
         </button>
       </div>

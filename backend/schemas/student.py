@@ -3,16 +3,14 @@ from typing import Optional
 from datetime import datetime
 
 
-# Schema for creating a new student
 class StudentCreate(BaseModel):
     admission_number: str
     first_name: str
     last_name: str
     parent_id: int
-    class_id: Optional[int] = None  # ADD THIS - optional class for auto-enrollment
+    class_id: Optional[int] = None
 
 
-# Schema for updating a student
 class StudentUpdate(BaseModel):
     admission_number: Optional[str] = None
     first_name: Optional[str] = None
@@ -20,26 +18,28 @@ class StudentUpdate(BaseModel):
     parent_id: Optional[int] = None
 
 
-# Schema for returning student data
 class StudentResponse(BaseModel):
     id: int
     admission_number: str
     first_name: str
     last_name: str
     parent_id: int
+    dva: Optional[str] = None  # ADD THIS
+    dva_customer_code: Optional[str] = None  # ADD THIS
+    dva_account_name: Optional[str] = None  # ADD THIS
     created_at: Optional[datetime] = None
 
     class Config:
         from_attributes = True
 
 
-# Schema for student summary
 class StudentSummary(BaseModel):
     id: int
     admission_number: str
     first_name: str
     last_name: str
     parent_name: Optional[str] = None
+    dva: Optional[str] = None  # ADD THIS
 
     class Config:
         from_attributes = True
