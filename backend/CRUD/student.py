@@ -1,10 +1,9 @@
 from sqlalchemy.orm import Session
-from sqlalchemy import func, or_
+from sqlalchemy import func, or_, and_
 from ..database.models import Student, Parent, Enrollment, Payment, FeeStructure, AcademicSession, Class
 from ..schemas.student import StudentCreate, StudentUpdate
-from typing import Optional, List
+from typing import Optional, List, Dict, Any
 from .parent import get_parent_by_id
-from ..utils.paystack import create_customer, assign_dva_to_student
 
 
 # ============ CREATE ============
@@ -81,69 +80,111 @@ def search_students(db: Session, query: str) -> List[Student]:
     ).all()
 
 
-def get_student_with_payment_summary(db: Session, student_id: int, session_id: Optional[int] = None) -> Optional[dict]:
-    """Get student with current enrollment and payment summary"""
-    student = get_student_by_id(db, student_id)
-    if not student:
-        return None
+def get_student_with_payment_summary(
+    db: Session,
+    student_id: int,
+    session_id: Optional[int] = None
+) -> Optional[Dict[str, Any]]:
+    """
+    Get a single student with enrollment, payment summary, and payment history in minimal queries.
+    """
 
-    # If no session_id provided, get current session
+    # 1. Resolve session ID cleanly
     if not session_id:
-        current_session = db.query(AcademicSession).filter(AcademicSession.is_current == True).first()
+        current_session = db.query(AcademicSession).filter(
+            AcademicSession.is_current == True
+        ).first()
         session_id = current_session.id if current_session else None
 
-    result = {
-        "student": student,
-        "parent": student.parent,
-        "current_enrollment": None,
-        "payment_summary": {
-            "fee": 0,
-            "paid": 0,
-            "balance": 0,
-            "status": "NOT_ENROLLED"
-        },
-        "payment_history": []
-    }
+    # Build enrollment join conditions dynamically to prevent "IS NULL" SQL bugs
+    enrollment_conditions = [
+        Enrollment.student_id == Student.id,
+        Enrollment.status == "ACTIVE"
+    ]
+    fee_conditions = []
 
     if session_id:
-        enrollment = db.query(Enrollment).filter(
-            Enrollment.student_id == student_id,
-            Enrollment.session_id == session_id,
-            Enrollment.status == "ACTIVE"
-        ).first()
+        enrollment_conditions.append(Enrollment.session_id == session_id)
+        fee_conditions.append(FeeStructure.session_id == session_id)
 
-        if enrollment:
-            fee = db.query(FeeStructure).filter(
-                FeeStructure.session_id == session_id,
-                FeeStructure.class_id == enrollment.class_id
-            ).first()
+    # 2. Get student with joins
+    query = db.query(
+        Student,
+        Parent,
+        Enrollment,
+        Class,
+        FeeStructure.amount.label('fee_amount')
+    ).outerjoin(
+        Parent, Student.parent_id == Parent.id
+    ).outerjoin(
+        Enrollment, and_(*enrollment_conditions)
+    ).outerjoin(
+        Class, Enrollment.class_id == Class.id
+    )
 
-            payments = db.query(Payment).filter(
-                Payment.enrollment_id == enrollment.id
-            ).order_by(Payment.payment_date.desc()).all()
+    if session_id:
+        fee_conditions.append(FeeStructure.class_id == Class.id)
+        query = query.outerjoin(FeeStructure, and_(*fee_conditions))
+    else:
+        query = query.outerjoin(
+            FeeStructure, FeeStructure.class_id == Class.id
+        )
 
-            total_paid = sum(p.amount for p in payments) if payments else 0
-            fee_amount = fee.amount if fee else 0
-            balance = fee_amount - total_paid
+    student_data = query.filter(Student.id == student_id).first()
 
-            result["current_enrollment"] = {
-                "enrollment": enrollment,
-                "class": enrollment.class_,
-                "session": enrollment.session,
-                "fee": fee_amount
-            }
+    if not student_data:
+        return None
 
-            result["payment_summary"] = {
-                "fee": fee_amount,
-                "paid": total_paid,
-                "balance": balance,
-                "status": "PAID" if balance <= 0 else "PARTIAL" if total_paid > 0 else "UNPAID"
-            }
+    student = student_data.Student
+    parent = student_data.Parent
+    enrollment = student_data.Enrollment
+    class_obj = student_data.Class
+    fee_amount = int(student_data.fee_amount or 0)
 
-            result["payment_history"] = payments
+    # 3. Fetch ONLY successful payments for accurate balances and history
+    payments = []
+    total_paid = 0
 
-    return result
+    if enrollment:
+        payments = db.query(Payment).filter(
+            Payment.enrollment_id == enrollment.id,
+            Payment.transaction_status == "success"  # Filter out pending/failed transactions
+        ).order_by(
+            Payment.payment_date.desc()
+        ).all()
 
+        total_paid = sum(p.amount for p in payments)
+
+    balance = fee_amount - total_paid
+
+    # Determine status
+    if enrollment:
+        if balance <= 0:
+            status = "PAID"
+        elif total_paid > 0:
+            status = "PARTIAL"
+        else:
+            status = "UNPAID"
+    else:
+        status = "NOT_ENROLLED"
+
+    return {
+        "student": student,
+        "parent": parent,
+        "current_enrollment": {
+            "enrollment": enrollment,
+            "class": class_obj,
+            "session": enrollment.session if enrollment else None,
+            "fee": fee_amount
+        } if enrollment else None,
+        "payment_summary": {
+            "fee": fee_amount,
+            "paid": total_paid,
+            "balance": balance,
+            "status": status
+        },
+        "payment_history": payments
+    }
 
 # ============ UPDATE ============
 
@@ -238,32 +279,146 @@ def promote_student(
     }
 
 
-def get_all_students_with_details(db: Session, skip: int = 0, limit: int = 100, session_id: Optional[int] = None) -> \
-List[dict]:
-    """Get all students with payment summary for a session"""
-    students = get_all_students(db, skip, limit)
+def get_all_students_with_details(
+        db: Session,
+        skip: int = 0,
+        limit: int = 100,
+        session_id: Optional[int] = None,
+        search: Optional[str] = None
+) -> List[dict]:
+    """
+    OPTIMIZED: Get all students with parent, enrollment, and payment summary in minimal queries.
+    Uses joins and aggregations to eliminate N+1 queries.
+    """
 
+    # If no session_id provided, get current session
     if not session_id:
-        current_session = db.query(Session).filter(Session.is_current == True).first()
+        current_session = db.query(AcademicSession).filter(
+            AcademicSession.is_current == True
+        ).first()
         session_id = current_session.id if current_session else None
 
+    # Build base query with joins
+    query = db.query(
+        Student,
+        Parent,
+        Enrollment,
+        Class,
+        FeeStructure.amount.label('fee_amount')
+    ).outerjoin(
+        Parent, Student.parent_id == Parent.id
+    ).outerjoin(
+        Enrollment, and_(
+            Enrollment.student_id == Student.id,
+            Enrollment.session_id == session_id if session_id else None,
+            Enrollment.status == "ACTIVE"
+        )
+    ).outerjoin(
+        Class, Enrollment.class_id == Class.id
+    ).outerjoin(
+        FeeStructure, and_(
+            FeeStructure.session_id == session_id if session_id else None,
+            FeeStructure.class_id == Class.id
+        )
+    )
+
+    # Apply search filter if provided
+    if search:
+        search_term = f"%{search}%"
+        query = query.filter(
+            or_(
+                Student.admission_number.ilike(search_term),
+                Student.first_name.ilike(search_term),
+                Student.last_name.ilike(search_term)
+            )
+        )
+
+    # Apply pagination
+    query = query.offset(skip).limit(limit)
+
+    # Execute query
+    results = query.all()
+
+    if not results:
+        return []
+
+    # Get all student IDs for payment aggregation
+    student_ids = [r.Student.id for r in results]
+
+    # OPTIMIZED: Get payment totals in ONE query for all students
+    payment_totals = db.query(
+        Enrollment.student_id,
+        func.sum(Payment.amount).label('total_paid')
+    ).join(
+        Payment, Payment.enrollment_id == Enrollment.id
+    ).filter(
+        Enrollment.student_id.in_(student_ids),
+        Enrollment.session_id == session_id if session_id else None,
+        Enrollment.status == "ACTIVE"
+    ).group_by(
+        Enrollment.student_id
+    ).all()
+
+    # Create payment lookup dict
+    payment_lookup = {pt.student_id: pt.total_paid for pt in payment_totals}
+
+    # Build response
     result = []
-    for student in students:
-        student_data = get_student_with_payment_summary(db, student.id, session_id)
-        if student_data:
-            result.append(student_data)
+    for row in results:
+        student = row.Student
+        parent = row.Parent
+        enrollment = row.Enrollment
+        class_obj = row.Class
+        fee_amount = row.fee_amount or 0
+
+        total_paid = payment_lookup.get(student.id, 0)
+        balance = fee_amount - total_paid
+
+        # Determine status
+        if enrollment:
+            if balance <= 0:
+                status = "PAID"
+            elif total_paid > 0:
+                status = "PARTIAL"
+            else:
+                status = "UNPAID"
         else:
-            result.append({
-                "student": student,
-                "parent": student.parent,
-                "current_enrollment": None,
-                "payment_summary": {
-                    "fee": 0,
-                    "paid": 0,
-                    "balance": 0,
-                    "status": "NOT_ENROLLED"
-                },
-                "payment_history": []
-            })
+            status = "NOT_ENROLLED"
+
+        result.append({
+            "student": student,
+            "parent": parent,
+            "current_enrollment": {
+                "enrollment": enrollment,
+                "class": class_obj,
+                "fee": fee_amount
+            } if enrollment else None,
+            "payment_summary": {
+                "fee": fee_amount,
+                "paid": total_paid,
+                "balance": balance,
+                "status": status
+            },
+            "payment_history": []  # We don't load payment history for list view
+        })
 
     return result
+
+
+def search_students_optimized(
+        db: Session,
+        query: str,
+        session_id: Optional[int] = None,
+        skip: int = 0,
+        limit: int = 50
+) -> List[dict]:
+    """
+    OPTIMIZED: Search students with details in minimal queries.
+    """
+    return get_all_students_with_details(
+        db,
+        skip=skip,
+        limit=limit,
+        session_id=session_id,
+        search=query
+    )

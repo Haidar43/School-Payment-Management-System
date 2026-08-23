@@ -4,7 +4,6 @@ from ..database.models import Parent, Student, Enrollment, Payment, FeeStructure
 from ..schemas.parent import ParentCreate, ParentUpdate
 from ..utils.auth import hash_password, verify_password
 from typing import Optional, List
-from ..utils.paystack import validate_nin, create_customer
 
 
 # ============ CREATE ============
@@ -19,41 +18,11 @@ def create_parent(db: Session, parent_data: ParentCreate) -> Parent:
         phone=parent_data.phone,
         email=parent_data.email,
         password=hashed_password,
-        nin=parent_data.nin,  # ADD THIS
-        nin_validated=False,  # ADD THIS - default False
-        paystack_customer_code=None  # ADD THIS
     )
 
     db.add(db_parent)
     db.commit()
     db.refresh(db_parent)
-
-    # Try to validate NIN and create customer (if NIN provided)
-    if parent_data.nin:
-        try:
-            # Validate NIN (skips in test/dev mode)
-            validation_result = validate_nin(parent_data.nin)
-
-            if validation_result.get("success"):
-                db_parent.nin_validated = True
-
-                # Create Paystack customer
-                customer_result = create_customer(
-                    first_name=parent_data.first_name,
-                    last_name=parent_data.last_name,
-                    phone=parent_data.phone,
-                    email=parent_data.email
-                )
-
-                if customer_result.get("success"):
-                    db_parent.paystack_customer_code = customer_result.get("customer_code")
-
-                db.commit()
-                db.refresh(db_parent)
-
-        except Exception as e:
-            # Don't fail parent creation if validation fails
-            print(f"Error validating NIN or creating customer: {e}")
 
     return db_parent
 
@@ -123,7 +92,8 @@ def get_parent_with_children(db: Session, parent_id: int) -> Optional[dict]:
                 ).first()
 
                 total_paid = db.query(func.sum(Payment.amount)).filter(
-                    Payment.enrollment_id == enrollment.id
+                    Payment.enrollment_id == enrollment.id,
+                    Payment.transaction_status == "success"
                 ).scalar() or 0
 
                 fee_amount = fee.amount if fee else 0
@@ -205,7 +175,7 @@ def get_all_parents_with_details(db: Session, skip: int = 0, limit: int = 100) -
     parents = get_all_parents(db, skip, limit)
 
     # Get current session
-    current_session = db.query(Session).filter(Session.is_current == True).first()
+    current_session = db.query(AcademicSession).filter(AcademicSession.is_current == True).first()
     session_id = current_session.id if current_session else None
 
     result = []
@@ -232,7 +202,8 @@ def get_all_parents_with_details(db: Session, skip: int = 0, limit: int = 100) -
 
                     if fee:
                         total_paid = db.query(func.sum(Payment.amount)).filter(
-                            Payment.enrollment_id == enrollment.id
+                            Payment.enrollment_id == enrollment.id,
+                            Payment.transaction_status == "success"
                         ).scalar() or 0
 
                         balance = fee.amount - total_paid

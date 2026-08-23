@@ -165,11 +165,11 @@ const Parents = () => {
                 <td className="text-sm">{parent.phone || '-'}</td>
                 <td className="text-sm">{parent.email || '-'}</td>
                 <td className="text-center text-sm">{parent.children_count || parent.students?.length || 0}</td>
-                <td className="text-right font-medium text-status-unpaid">
+                <td className="text-left font-medium text-status-unpaid">
                   {parent.outstanding_balance > 0 ? formatCurrency(parent.outstanding_balance) : '-'}
                 </td>
-                <td className="text-right">
-                  <div className="flex items-center justify-end gap-2">
+                <td className="text-left">
+                  <div className="flex items-center justify-start gap-2">
                     <button
                       onClick={() => navigate(`/admin/parents/${parent.id}`)}
                       className="p-1.5 text-text-secondary hover:text-text-primary rounded-sm hover:bg-background transition-colors"

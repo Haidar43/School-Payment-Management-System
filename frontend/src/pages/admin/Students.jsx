@@ -244,11 +244,11 @@ const Students = () => {
                       <td>
                         <span className={statusBadge}>{statusLabel}</span>
                       </td>
-                      <td className="text-right font-medium text-status-unpaid">
+                      <td className="text-left font-medium text-status-unpaid">
                         {summary.balance > 0 ? formatCurrency(summary.balance) : '-'}
                       </td>
-                      <td className="text-right">
-                        <div className="flex items-center justify-end gap-2">
+                      <td className="text-left">
+                        <div className="flex items-center justify-start gap-2">
                           <button
                             onClick={() => navigate(`/admin/students/${studentData.id}`)}
                             className="p-1.5 text-text-secondary hover:text-text-primary rounded-sm hover:bg-background transition-colors"

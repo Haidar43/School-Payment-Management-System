@@ -11,14 +11,13 @@ export const getPaymentHistory = (params) =>
 export const getChildPayments = (id) =>
   api.get(`/api/parent/children/${id}/payments`);
 
-// NEW: Initialize payment
 export const initializePayment = (studentId, amount) => {
+  console.log('API Call - initializePayment:', { student_id: studentId, amount: amount });
   return api.post('/api/payments/initialize', {
-    student_id: studentId,
-    amount: amount
+    student_id: parseInt(studentId),
+    amount: parseFloat(amount)
   });
 };
-
 // NEW: Verify payment
 export const verifyPayment = (reference) => {
   return api.get(`/api/payments/verify?reference=${reference}`);

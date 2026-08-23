@@ -125,16 +125,6 @@ const ParentForm = ({ parent, onSuccess, onCancel }) => {
         placeholder="john@example.com"
       />
 
-      <Input
-        label="NIN (National Identification Number)"
-        name="nin"
-        value={formData.nin}
-        onChange={handleChange}
-        error={errors.nin}
-        placeholder="12345678901"
-        helperText="Required for virtual account generation"
-      />
-
       {!parent && (
         <Input
           label="Password"

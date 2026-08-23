@@ -97,7 +97,8 @@ def get_enrollment_with_details(db: Session, enrollment_id: int) -> Optional[dic
     ).first()
 
     payments = db.query(Payment).filter(
-        Payment.enrollment_id == enrollment.id
+        Payment.enrollment_id == enrollment.id,
+        Payment.transaction_status == "success"
     ).order_by(Payment.payment_date.desc()).all()
 
     total_paid = sum(p.amount for p in payments) if payments else 0

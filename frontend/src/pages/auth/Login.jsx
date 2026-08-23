@@ -67,32 +67,47 @@ const Login = () => {
   };
 
   const handleSubmit = async (e) => {
-    e.preventDefault();
+  e.preventDefault();
 
-    if (!validateForm()) {
-      return;
+  if (!validateForm()) {
+    return;
+  }
+
+  setLoading(true);
+  setErrors({}); // Clear previous errors
+  try {
+    if (role === 'admin') {
+      await loginAdmin(formData.email, formData.password);
+      toast.success('Welcome back, Admin!');
+      navigate('/admin/dashboard');
+    } else {
+      await loginParent(formData.phone, formData.password);
+      toast.success('Welcome back!');
+      navigate('/parent/dashboard');
+    }
+  } catch (error) {
+    console.error('Login error:', error);
+
+    // Handle different error types
+    let errorMessage = 'Invalid credentials. Please try again.';
+
+    if (error.response) {
+      // Server responded with error
+      errorMessage = error.response.data?.detail || errorMessage;
+    } else if (error.request) {
+      // Request made but no response (network error)
+      errorMessage = 'Network error. Please check your connection.';
+    } else {
+      // Something else
+      errorMessage = error.message || errorMessage;
     }
 
-    setLoading(true);
-    try {
-      if (role === 'admin') {
-        await loginAdmin(formData.email, formData.password);
-        toast.success('Welcome back, Admin!');
-        navigate('/admin/dashboard');
-      } else {
-        await loginParent(formData.phone, formData.password);
-        toast.success('Welcome back!');
-        navigate('/parent/dashboard');
-      }
-    } catch (error) {
-      console.error('Login error:', error);
-      const message = error.response?.data?.detail || 'Invalid credentials. Please try again.';
-      toast.error(message);
-      setErrors({ general: message });
-    } finally {
-      setLoading(false);
-    }
-  };
+    setErrors({ general: errorMessage });
+    toast.error(errorMessage);
+  } finally {
+    setLoading(false);
+  }
+};
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-background py-12 px-4 sm:px-6 lg:px-8">

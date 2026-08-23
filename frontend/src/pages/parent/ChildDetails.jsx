@@ -144,7 +144,6 @@ const ChildDetails = () => {
         <ArrowLeft className="w-4 h-4" />
         Back to Children
       </button>
-
       {/* Header */}
       <div className="flex items-start justify-between flex-wrap gap-4">
         <div className="flex items-center gap-4">

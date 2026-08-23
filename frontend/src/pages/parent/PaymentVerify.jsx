@@ -38,7 +38,7 @@ const PaymentVerify = () => {
 
       if (data.status === 'success') {
         setStatus('success');
-        setPaymentData(data);
+        setPaymentData({ ...data, amount: data.amount * 100 });
         toast.success('Payment successful!');
       } else if (data.status === 'failed') {
         setStatus('failed');

@@ -75,7 +75,8 @@ def get_session_stats(db: Session, session_id: int) -> Optional[dict]:
         fee_amount = fee.amount if fee else 0
 
         total_paid = db.query(func.sum(Payment.amount)).filter(
-            Payment.enrollment_id == enrollment.id
+            Payment.enrollment_id == enrollment.id,
+            Payment.transaction_status == "success"
         ).scalar() or 0
 
         total_collected += total_paid

@@ -1,7 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { getStudent, deleteStudent, promoteStudent } from '../../api/admin';
-import { generateStudentDVA } from '../../api/admin';
 import toast from 'react-hot-toast';
 import {
   ArrowLeft,
@@ -292,91 +291,7 @@ const StudentProfile = () => {
             </div>
           </div>
         </div>
-
-        {/* Parent Information */}
-        <div className="card">
-          <h2 className="text-sm font-medium text-text-secondary mb-4">Parent Information</h2>
-          <div className="space-y-3">
-            <div className="flex items-center gap-3">
-              <User className="w-4 h-4 text-text-secondary" />
-              <div>
-                <p className="text-xs text-text-secondary">Parent Name</p>
-                <p className="text-sm font-medium text-text-primary">
-                  {parentData.first_name} {parentData.last_name}
-                </p>
-              </div>
-            </div>
-            <div className="flex items-center gap-3">
-              <Phone className="w-4 h-4 text-text-secondary" />
-              <div>
-                <p className="text-xs text-text-secondary">Phone</p>
-                <p className="text-sm font-medium text-text-primary">
-                  {parentData.phone || '-'}
-                </p>
-              </div>
-            </div>
-            <div className="flex items-center gap-3">
-              <Mail className="w-4 h-4 text-text-secondary" />
-              <div>
-                <p className="text-xs text-text-secondary">Email</p>
-                <p className="text-sm font-medium text-text-primary">
-                  {parentData.email || '-'}
-                </p>
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      {/* Virtual Account */}
-        <div className="card">
-          <h2 className="text-sm font-medium text-text-secondary mb-4">Virtual Account</h2>
-
-          {student.dva ? (
-            <div className="space-y-2">
-              <div className="bg-green-50 border border-status-paid/20 rounded-sm p-4">
-                <p className="text-sm text-status-paid font-medium">Account Generated ✅</p>
-                <div className="mt-2 grid grid-cols-2 gap-4">
-                  <div>
-                    <p className="text-xs text-text-secondary">Account Number</p>
-                    <p className="text-lg font-bold text-text-primary font-mono">{student.dva}</p>
-                  </div>
-                  <div>
-                    <p className="text-xs text-text-secondary">Account Name</p>
-                    <p className="text-sm font-medium text-text-primary">{student.dva_account_name || '-'}</p>
-                  </div>
-                  <div>
-                    <p className="text-xs text-text-secondary">Bank</p>
-                    <p className="text-sm font-medium text-text-primary">{student.dva_bank_name || 'GTBank'}</p>
-                  </div>
-                  <div>
-                    <p className="text-xs text-text-secondary">Status</p>
-                    <p className="text-sm font-medium text-status-paid">Active</p>
-                  </div>
-                </div>
-              </div>
-            </div>
-          ) : (
-            <div className="space-y-3">
-              <div className="bg-amber-50 border border-status-partial/20 rounded-sm p-4">
-                <p className="text-sm text-status-partial">
-                  No virtual account generated yet.
-                </p>
-                {student.parent?.nin_validated ? (
-                  <p className="text-sm text-text-secondary mt-1">
-                    Parent NIN is validated. Click the button below to generate an account.
-                  </p>
-                ) : (
-                  <p className="text-sm text-text-secondary mt-1">
-                    ⚠️ Parent NIN needs to be validated first. Go to the parent's profile to validate.
-                  </p>
-                )}
-              </div>
-
-            </div>
-          )}
-        </div>
-
+       </div>
       {/* Current Enrollment */}
       <div className="card">
         <h2 className="text-sm font-medium text-text-secondary mb-4">Current Enrollment</h2>
@@ -428,40 +343,44 @@ const StudentProfile = () => {
       </div>
 
       {/* Payment History */}
-      <div className="card">
-        <div className="flex items-center justify-between mb-4">
-          <h2 className="text-sm font-medium text-text-secondary">Payment History</h2>
-          <span className="text-sm text-text-secondary">{payments.length} payments</span>
-        </div>
-        {payments.length === 0 ? (
-          <p className="text-sm text-text-secondary text-center py-4">No payments recorded</p>
-        ) : (
-          <div className="overflow-x-auto">
-            <table className="table">
-              <thead>
-                <tr>
-                  <th>Date</th>
-                  <th>Receipt</th>
-                  <th>Method</th>
-                  <th className="text-right">Amount</th>
-                  <th>Remarks</th>
-                </tr>
-              </thead>
-              <tbody>
-                {payments.map((payment) => (
-                  <tr key={payment.id}>
-                    <td className="text-sm">{formatDate(payment.payment_date)}</td>
-                    <td className="font-mono text-sm">{payment.receipt_number}</td>
-                    <td className="text-sm">{payment.method}</td>
-                    <td className="text-right font-medium">{formatCurrency(payment.amount)}</td>
-                    <td className="text-sm text-text-secondary">{payment.remarks || '-'}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
+        <div className="card">
+          <div className="flex items-center justify-between mb-4">
+            <h2 className="text-sm font-medium text-text-secondary">Payment History</h2>
+            <span className="text-sm text-text-secondary">{payments.length} payments</span>
           </div>
-        )}
-      </div>
+          {payments.length === 0 ? (
+            <p className="text-sm text-text-secondary text-center py-4">No payments recorded</p>
+          ) : (
+            <div className="overflow-x-auto">
+              <table className="w-full text-left border-collapse">
+                <thead>
+                  <tr className="border-b border-gray-200">
+                    <th className="py-2 px-3 text-sm font-semibold">Date</th>
+                    <th className="py-2 px-3 text-sm font-semibold">Receipt</th>
+                    <th className="py-2 px-3 text-sm font-semibold">Method</th>
+                    <th className="py-2 px-3 text-sm font-semibold text-right">Amount</th>
+                    <th className="py-2 px-[1.5rem] text-sm font-semibold text-left">Remarks</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-gray-100">
+                  {payments.map((payment) => (
+                    <tr key={payment.id}>
+                      <td className="py-2.5 px-3 text-sm whitespace-nowrap">{formatDate(payment.payment_date)}</td>
+                      <td className="py-2.5 px-3 font-mono text-sm whitespace-nowrap">{payment.receipt_number}</td>
+                      <td className="py-2.5 px-3 text-sm whitespace-nowrap">{payment.method}</td>
+                      <td className="py-2.5 px-3 text-sm font-medium text-right whitespace-nowrap">
+                        {formatCurrency(payment.amount)}
+                      </td>
+                      <td className="py-2.5 px-[1.5rem] text-sm text-text-secondary text-left">
+                        {payment.remarks || '-'}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
+        </div>
 
       {/* Delete Confirmation Modal */}
       <Modal

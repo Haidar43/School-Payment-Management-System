@@ -1,4 +1,4 @@
-from sqlalchemy import Column, Integer, String, Boolean, Date, DateTime, ForeignKey, UniqueConstraint, JSON
+from sqlalchemy import Column, Integer, String, Boolean, Date, DateTime, ForeignKey, UniqueConstraint, JSON, Index
 from sqlalchemy.orm import relationship
 from datetime import datetime
 from .session import Base
@@ -101,6 +101,7 @@ class FeeStructure(Base):
 
     __table_args__ = (
         UniqueConstraint("session_id", "class_id", name="uq_session_class_fee"),
+        Index("idx_fee_session_class", "session_id", "class_id"),  # ADD
     )
 
     session = relationship("AcademicSession", back_populates="fee_structures")
@@ -123,6 +124,8 @@ class Enrollment(Base):
 
     __table_args__ = (
         UniqueConstraint("student_id", "session_id", name="uq_student_session"),
+        Index("idx_enrollment_class_session", "class_id", "session_id"),  # ADD
+        Index("idx_enrollment_student_status", "student_id", "status"),  # ADD
     )
 
     student = relationship("Student", back_populates="enrollments")
@@ -153,3 +156,9 @@ class Payment(Base):
     paystack_response = Column(JSON, nullable=True)  # Store full webhook payload
 
     enrollment = relationship("Enrollment", back_populates="payments")
+
+    __table_args__ = (
+        Index("idx_payment_enrollment", "enrollment_id"),  # ADD
+        Index("idx_payment_transaction_status", "transaction_status"),  # ADD
+        Index("idx_payment_date", "payment_date"),  # ADD
+    )

@@ -1,8 +1,7 @@
 import json
 from datetime import datetime
-from urllib.request import Request
 
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, status, Request
 from sqlalchemy.orm import Session
 from typing import Optional
 import os
@@ -16,18 +15,27 @@ from ..utils.auth import get_current_parent, get_current_admin
 
 router = APIRouter(prefix="/api/payments", tags=["Payments"])
 
+from pydantic import BaseModel
 
+from pydantic import BaseModel, Field
+
+
+# 1. Define the request schema
+class PaymentInitializeRequest(BaseModel):
+    student_id: int
+    amount: float
+
+
+# 2. Update the router endpoint to accept the payload
 @router.post("/initialize")
 def initialize_payment(
-        student_id: int,
-        amount: float,
+        payload: PaymentInitializeRequest,
         parent: Parent = Depends(get_current_parent),
         db: Session = Depends(get_db)
 ):
-    """
-    Initialize a payment transaction.
-    Parent must be authenticated and own the student.
-    """
+    student_id = payload.student_id
+    amount = payload.amount
+
     # Check if student exists and belongs to this parent
     student = db.query(Student).filter(
         Student.id == student_id,
@@ -185,10 +193,21 @@ def verify_payment(
     payment.paystack_response = result.get("data")
 
     if result.get("status") == "success":
+        verified_amount = result.get("data", {}).get("amount")
+        if verified_amount != payment.amount:
+            payment.transaction_status = "failed"
+            db.commit()
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Verified amount does not match initialized payment"
+            )
+
         # Payment successful - update receipt number
         from ..utils.receipt import generate_receipt_number
-        payment.receipt_number = generate_receipt_number(db)
-        payment.payment_date = datetime.utcnow()
+        if payment.receipt_number.startswith("PENDING-"):
+            payment.receipt_number = generate_receipt_number(db)
+        if payment.payment_date is None:
+            payment.payment_date = datetime.utcnow()
 
         db.commit()
         db.refresh(payment)
@@ -274,10 +293,16 @@ def handle_charge_success(data: dict, db: Session):
 
     event_data = data.get("data", {})
     reference = event_data.get("reference")
+    status = event_data.get("status")
     amount_in_kobo = event_data.get("amount", 0)
-    amount = amount_in_kobo / 100
     metadata = event_data.get("metadata", {})
     student_id = metadata.get("student_id")
+
+    if not reference:
+        return {"status": "error", "message": "No payment reference in webhook payload"}
+
+    if status != "success":
+        return {"status": "ignored", "message": f"Charge status is {status or 'unknown'}"}
 
     if not student_id:
         return {"status": "error", "message": "No student_id in metadata"}
@@ -310,6 +335,9 @@ def handle_charge_success(data: dict, db: Session):
         )
         db.add(payment)
     else:
+        if payment.amount != amount_in_kobo:
+            return {"status": "error", "message": "Webhook amount does not match initialized payment"}
+
         # Update existing payment
         payment.transaction_status = "success"
         payment.payment_date = datetime.utcnow()

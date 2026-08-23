@@ -15,9 +15,6 @@ export const getParent = (id) => api.get(`/api/admin/parents/${id}`);
 export const createParent = (data) => api.post('/api/admin/parents', data);
 export const updateParent = (id, data) => api.put(`/api/admin/parents/${id}`, data);
 export const deleteParent = (id) => api.delete(`/api/admin/parents/${id}`);
-export const validateParentNIN = (parentId) => {
-  return api.post(`/api/admin/parents/${parentId}/validate-nin`);
-};
 
 // Students
 export const getStudents = (params) => api.get('/api/admin/students', { params });

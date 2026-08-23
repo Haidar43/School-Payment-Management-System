@@ -134,59 +134,7 @@ def get_parents(
         current_admin: Admin = Depends(get_current_admin),
         db: Session = Depends(get_db)
 ):
-    """Get all parents with children count and outstanding balance"""
-    parents = get_all_parents(db, skip, limit)
-
-    # Get current session
-    current_session = session_crud.get_current_session(db)
-    session_id = current_session.id if current_session else None
-
-    result = []
-    for parent in parents:
-        # Get children count
-        children_count = db.query(Student).filter(Student.parent_id == parent.id).count()
-
-        # Calculate outstanding balance for current session
-        outstanding = 0
-        if session_id:
-            # Get all students for this parent
-            students = db.query(Student).filter(Student.parent_id == parent.id).all()
-            for student in students:
-                enrollment = db.query(Enrollment).filter(
-                    Enrollment.student_id == student.id,
-                    Enrollment.session_id == session_id,
-                    Enrollment.status == "ACTIVE"
-                ).first()
-
-                if enrollment:
-                    fee = db.query(FeeStructure).filter(
-                        FeeStructure.session_id == session_id,
-                        FeeStructure.class_id == enrollment.class_id
-                    ).first()
-
-                    if fee:
-                        total_paid = db.query(func.sum(Payment.amount)).filter(
-                            Payment.enrollment_id == enrollment.id
-                        ).scalar() or 0
-
-                        balance = fee.amount - total_paid
-                        if balance > 0:
-                            outstanding += balance
-
-        result.append({
-            "id": parent.id,
-            "first_name": parent.first_name,
-            "last_name": parent.last_name,
-            "phone": parent.phone,
-            "email": parent.email,
-            "created_at": parent.created_at,
-            "students": db.query(Student).filter(Student.parent_id == parent.id).all(),
-            "children_count": children_count,
-            "outstanding_balance": outstanding
-        })
-
-    return result
-
+    return parent_crud.get_all_parents_with_details(skip=skip, limit=limit, db=db)
 
 @router.get("/parents/{parent_id}")
 def get_parent(
@@ -242,21 +190,6 @@ def delete_parent_route(
     return {"message": "Parent deleted successfully"}
 
 
-@router.post("/parents/{parent_id}/validate-nin")
-def validate_parent_nin_endpoint(
-        parent_id: int,
-        current_admin: Admin = Depends(get_current_admin),
-        db: Session = Depends(get_db)
-):
-    """Validate a parent's NIN and create Paystack customer"""
-    result = parent_crud.validate_parent_nin(db, parent_id)
-    if not result:
-        raise HTTPException(status_code=404, detail="Parent not found")
-
-    if not result.get("success"):
-        raise HTTPException(status_code=400, detail=result.get("message"))
-
-    return result
 
 # ============================================================
 # STUDENT MANAGEMENT

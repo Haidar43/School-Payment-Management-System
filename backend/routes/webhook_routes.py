@@ -59,9 +59,16 @@ def handle_charge_success(data: dict, db: Session):
 
     event_data = data.get("data", {})
     reference = event_data.get("reference")
+    status = event_data.get("status")
     amount_in_kobo = event_data.get("amount", 0)
     metadata = event_data.get("metadata", {})
     student_id = metadata.get("student_id")
+
+    if not reference:
+        return {"status": "error", "message": "No payment reference in webhook payload"}
+
+    if status != "success":
+        return {"status": "ignored", "message": f"Charge status is {status or 'unknown'}"}
 
     if not student_id:
         return {"status": "error", "message": "No student_id in metadata"}
@@ -72,6 +79,9 @@ def handle_charge_success(data: dict, db: Session):
     ).first()
 
     if payment:
+        if payment.amount != amount_in_kobo:
+            return {"status": "error", "message": "Webhook amount does not match initialized payment"}
+
         # Update existing payment
         payment.transaction_status = "success"
         payment.payment_date = datetime.utcnow()

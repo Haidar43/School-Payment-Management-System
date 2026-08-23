@@ -1,9 +1,9 @@
 from sqlalchemy.orm import Session
 from sqlalchemy import func, and_
-from ..database.models import Payment, Enrollment, Student, AcademicSession, FeeStructure
+from ..database.models import Payment, Enrollment, Student, AcademicSession, FeeStructure, Parent, Class
 from ..schemas.payment import PaymentCreate, PaymentUpdate
 from ..utils.receipt import generate_receipt_number
-from typing import Optional, List
+from typing import Optional, List, Any, Dict
 from datetime import date
 
 
@@ -33,7 +33,8 @@ def create_payment(db: Session, payment_data: PaymentCreate) -> Optional[Payment
         amount=int(payment_data.amount * 100),  # Convert to cents
         receipt_number=receipt_number,
         method=payment_data.method.value,
-        remarks=payment_data.remarks
+        remarks=payment_data.remarks,
+        transaction_status="success"
     )
 
     db.add(db_payment)
@@ -56,12 +57,17 @@ def get_payment_by_receipt(db: Session, receipt_number: str) -> Optional[Payment
 
 def get_all_payments(db: Session, skip: int = 0, limit: int = 100) -> List[Payment]:
     """Get all payments with pagination"""
-    return db.query(Payment).order_by(Payment.payment_date.desc()).offset(skip).limit(limit).all()
+    return db.query(Payment).filter(
+        Payment.transaction_status == "success"
+    ).order_by(Payment.payment_date.desc()).offset(skip).limit(limit).all()
 
 
 def get_payments_by_student(db: Session, student_id: int, session_id: Optional[int] = None) -> List[Payment]:
     """Get all payments for a student"""
-    query = db.query(Payment).join(Enrollment).filter(Enrollment.student_id == student_id)
+    query = db.query(Payment).join(Enrollment).filter(
+        Enrollment.student_id == student_id,
+        Payment.transaction_status == "success"
+    )
 
     if session_id:
         query = query.filter(Enrollment.session_id == session_id)
@@ -72,7 +78,8 @@ def get_payments_by_student(db: Session, student_id: int, session_id: Optional[i
 def get_payments_by_enrollment(db: Session, enrollment_id: int) -> List[Payment]:
     """Get all payments for an enrollment"""
     return db.query(Payment).filter(
-        Payment.enrollment_id == enrollment_id
+        Payment.enrollment_id == enrollment_id,
+        Payment.transaction_status == "success"
     ).order_by(Payment.payment_date.desc()).all()
 
 
@@ -87,10 +94,35 @@ def get_payments_filtered(
         end_date: Optional[date] = None,
         skip: int = 0,
         limit: int = 100
-) -> List[Payment]:
-    """Get payments with filters"""
-    query = db.query(Payment).join(Enrollment).join(Student)
+) -> List[Dict[str, Any]]:
+    """Get filtered payments with related entity names in a single query."""
 
+    # Select payment fields and concatenated/referenced entity names
+    query = db.query(
+        Payment.id,
+        Payment.receipt_number,
+        Payment.amount,
+        Payment.method,
+        Payment.payment_date,
+        (Student.first_name + " " + Student.last_name).label("student_name"),
+        (Parent.first_name + " " + Parent.last_name).label("parent_name"),
+        Class.name.label("class_name"),
+        AcademicSession.name.label("session_name")
+    ).join(
+        Enrollment, Payment.enrollment_id == Enrollment.id
+    ).join(
+        Student, Enrollment.student_id == Student.id
+    ).join(
+        Parent, Student.parent_id == Parent.id
+    ).join(
+        Class, Enrollment.class_id == Class.id
+    ).join(
+        AcademicSession, Enrollment.session_id == AcademicSession.id
+    ).filter(
+        Payment.transaction_status == "success"
+    )
+
+    # Apply filters
     if session_id:
         query = query.filter(Enrollment.session_id == session_id)
     if student_id:
@@ -106,8 +138,25 @@ def get_payments_filtered(
     if end_date:
         query = query.filter(Payment.payment_date <= end_date)
 
-    return query.order_by(Payment.payment_date.desc()).offset(skip).limit(limit).all()
+    results = query.order_by(
+        Payment.payment_date.desc()
+    ).offset(skip).limit(limit).all()
 
+    # Format result matching the frontend keys
+    return [
+        {
+            "id": r.id,
+            "receipt_number": r.receipt_number,
+            "student_name": r.student_name,
+            "parent_name": r.parent_name,
+            "class_name": r.class_name,
+            "session_name": r.session_name,
+            "method": r.method,
+            "amount": r.amount,
+            "payment_date": r.payment_date.isoformat() if r.payment_date else None
+        }
+        for r in results
+    ]
 
 def get_payment_with_details(db: Session, payment_id: int) -> Optional[dict]:
     """Get payment with student and parent details"""

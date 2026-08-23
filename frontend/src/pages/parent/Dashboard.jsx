@@ -10,12 +10,13 @@ import {
   AlertCircle,
   ChevronRight,
   Wallet,
+  LogOut,
 } from 'lucide-react';
 import { formatCurrency, formatDate, getStatusBadge } from '../../utils/format';
 import Spinner from '../../components/common/Spinner';
 
 const ParentDashboard = () => {
-  const { user } = useAuth();
+  const { user, logout } = useAuth(); // ADDED: logout from useAuth
   const navigate = useNavigate();
   const [loading, setLoading] = useState(true);
   const [dashboardData, setDashboardData] = useState(null);
@@ -35,6 +36,11 @@ const ParentDashboard = () => {
     } finally {
       setLoading(false);
     }
+  };
+
+  const handleLogout = async () => {
+    await logout();
+    navigate('/login');
   };
 
   if (loading) {
@@ -66,36 +72,47 @@ const ParentDashboard = () => {
   } = dashboardData;
 
   return (
-    <div className="space-y-6">
-      {/* Welcome */}
-      <div>
-        <h1 className="text-2xl font-semibold text-text-primary">{welcome}</h1>
-        <p className="text-sm text-text-secondary mt-1">
-          Here's an overview of your children's payment status.
-        </p>
+    <div className="space-y-4 sm:space-y-6">
+      {/* Welcome with Logout */}
+      <div className="flex items-center justify-between flex-wrap gap-2">
+        <div>
+          <h1 className="text-xl sm:text-2xl font-semibold text-text-primary">
+            {welcome}
+          </h1>
+          <p className="text-sm text-text-secondary mt-1">
+            Here's an overview of your children's payment status.
+          </p>
+        </div>
+        <button
+          onClick={handleLogout}
+          className="text-sm text-text-secondary hover:text-status-unpaid flex items-center gap-2 px-3 py-2 rounded-sm hover:bg-red-50 transition-colors"
+        >
+          <LogOut className="w-4 h-4" />
+          <span className="hidden sm:inline">Logout</span>
+        </button>
       </div>
 
-      {/* Stats */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+      {/* Stats - Responsive Grid */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
         <div className="card">
-          <div className="flex items-center gap-4">
-            <div className="p-3 rounded-md bg-primary/10">
+          <div className="flex items-center gap-3 sm:gap-4">
+            <div className="p-3 rounded-md bg-primary/10 flex-shrink-0">
               <Users className="w-5 h-5 text-primary" />
             </div>
-            <div>
+            <div className="min-w-0">
               <p className="text-xs text-text-secondary">Your Children</p>
-              <p className="text-2xl font-semibold text-text-primary">{children_count}</p>
+              <p className="text-xl sm:text-2xl font-semibold text-text-primary">{children_count}</p>
             </div>
           </div>
         </div>
         <div className="card">
-          <div className="flex items-center gap-4">
-            <div className="p-3 rounded-md bg-status-unpaid/10">
+          <div className="flex items-center gap-3 sm:gap-4">
+            <div className="p-3 rounded-md bg-status-unpaid/10 flex-shrink-0">
               <Wallet className="w-5 h-5 text-status-unpaid" />
             </div>
-            <div>
+            <div className="min-w-0">
               <p className="text-xs text-text-secondary">Total Outstanding</p>
-              <p className={`text-2xl font-semibold ${total_outstanding > 0 ? 'text-status-unpaid' : 'text-status-paid'}`}>
+              <p className={`text-xl sm:text-2xl font-semibold truncate ${total_outstanding > 0 ? 'text-status-unpaid' : 'text-status-paid'}`}>
                 {formatCurrency(total_outstanding)}
               </p>
             </div>
@@ -109,7 +126,7 @@ const ParentDashboard = () => {
           <h2 className="text-sm font-medium text-text-secondary">Your Children</h2>
           <button
             onClick={() => navigate('/parent/children')}
-            className="text-sm text-accent hover:text-accent-light font-medium inline-flex items-center gap-1"
+            className="text-sm text-accent hover:text-accent-light font-medium inline-flex items-center gap-1 flex-shrink-0"
           >
             View all
             <ChevronRight className="w-4 h-4" />
@@ -123,51 +140,63 @@ const ParentDashboard = () => {
             {children.slice(0, 5).map((child) => {
               const status = child.status || 'NOT_ENROLLED';
               const badge = getStatusBadge(status);
+              const balance = child.balance || 0;
+
               return (
                 <button
                   key={child.student.id}
                   onClick={() => navigate(`/parent/children/${child.student.id}`)}
-                  className="w-full flex items-center justify-between p-3 rounded-sm hover:bg-background transition-colors border border-border"
+                  className="w-full flex flex-col sm:flex-row sm:items-center justify-between p-3 rounded-sm hover:bg-background transition-colors border border-border gap-3 sm:gap-0"
                 >
-                  <div className="flex items-center gap-4">
-                    <div className="w-10 h-10 rounded-sm bg-primary/5 flex items-center justify-center text-primary font-semibold text-sm">
+                  {/* Left - Student Info */}
+                  <div className="flex items-center gap-3 sm:gap-4 min-w-0">
+                    <div className="w-10 h-10 rounded-sm bg-primary/5 flex items-center justify-center text-primary font-semibold text-sm flex-shrink-0">
                       {child.student.first_name.charAt(0)}
                     </div>
-                    <div className="text-left">
-                      <p className="text-sm font-medium text-text-primary">
+                    <div className="text-left min-w-0">
+                      <p className="text-sm font-medium text-text-primary truncate">
                         {child.student.first_name} {child.student.last_name}
                       </p>
-                      <p className="text-xs text-text-secondary">
+                      <p className="text-xs text-text-secondary truncate">
                         {child.class?.name || 'Not enrolled'}
                       </p>
                     </div>
                   </div>
-                  <div className="flex items-center gap-4">
-                    <div className="text-right">
-                      <p className="text-sm font-medium text-text-primary">
-                        {formatCurrency(child.paid || 0)}
-                      </p>
-                      <p className="text-xs text-text-secondary">Paid</p>
+
+                  {/* Right - Payment Info + Actions */}
+                  <div className="flex flex-wrap items-center gap-2 sm:gap-3 w-full sm:w-auto">
+                    <div className="flex items-center gap-3 sm:gap-4 flex-1 sm:flex-none">
+                      <div className="text-right">
+                        <p className="text-sm font-medium text-text-primary">
+                          {formatCurrency(child.paid || 0)}
+                        </p>
+                        <p className="text-xs text-text-secondary">Paid</p>
+                      </div>
+                      <div className="text-right">
+                        <p className={`text-sm font-medium ${balance > 0 ? 'text-status-unpaid' : 'text-status-paid'}`}>
+                          {formatCurrency(balance)}
+                        </p>
+                        <p className="text-xs text-text-secondary">Balance</p>
+                      </div>
+                      <span className={`${badge.className} flex-shrink-0`}>
+                        {badge.label}
+                      </span>
                     </div>
-                    <div className="text-right">
-                      <p className={`text-sm font-medium ${child.balance > 0 ? 'text-status-unpaid' : 'text-status-paid'}`}>
-                        {formatCurrency(child.balance || 0)}
-                      </p>
-                      <p className="text-xs text-text-secondary">Balance</p>
-                    </div>
-                    <span className={badge.className}>{badge.label}</span>
-                      {balance > 0 && (
+
+                    {/* Pay Now Button - Responsive */}
+                    {balance > 0 && (
                       <button
                         onClick={(e) => {
                           e.stopPropagation();
                           navigate(`/parent/pay/${child.student.id}`);
                         }}
-                        className="btn-accent text-xs py-1.5 px-3 rounded-sm"
+                        className="btn-accent text-xs py-1.5 px-3 rounded-sm flex-shrink-0 w-full sm:w-auto"
                       >
                         Pay Now
                       </button>
                     )}
-                    <ChevronRight className="w-4 h-4 text-text-secondary" />
+
+                    <ChevronRight className="w-4 h-4 text-text-secondary flex-shrink-0 hidden sm:block" />
                   </div>
                 </button>
               );
@@ -183,7 +212,7 @@ const ParentDashboard = () => {
             <h2 className="text-sm font-medium text-text-secondary">Recent Payments</h2>
             <button
               onClick={() => navigate('/parent/payments')}
-              className="text-sm text-accent hover:text-accent-light font-medium inline-flex items-center gap-1"
+              className="text-sm text-accent hover:text-accent-light font-medium inline-flex items-center gap-1 flex-shrink-0"
             >
               View all
               <ChevronRight className="w-4 h-4" />
@@ -191,18 +220,18 @@ const ParentDashboard = () => {
           </div>
           <div className="space-y-3">
             {recent_payments.slice(0, 5).map((payment, index) => (
-              <div key={index} className="flex items-center justify-between py-2 border-b border-border last:border-0">
-                <div>
-                  <p className="text-sm font-medium text-text-primary">
+              <div key={index} className="flex flex-col sm:flex-row sm:items-center justify-between py-2 border-b border-border last:border-0 gap-2 sm:gap-0">
+                <div className="min-w-0">
+                  <p className="text-sm font-medium text-text-primary truncate">
                     {payment.student}
                   </p>
-                  <div className="flex items-center gap-2 mt-0.5">
+                  <div className="flex flex-wrap items-center gap-2 mt-0.5">
                     <span className="text-xs text-text-secondary">{payment.receipt}</span>
                     <span className="text-xs text-text-secondary">•</span>
                     <span className="text-xs text-text-secondary">{formatDate(payment.date)}</span>
                   </div>
                 </div>
-                <div className="flex items-center gap-3">
+                <div className="flex items-center gap-3 flex-wrap">
                   <span className="text-sm font-medium text-text-primary">
                     {formatCurrency(payment.amount)}
                   </span>

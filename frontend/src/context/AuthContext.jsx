@@ -25,6 +25,7 @@ export const AuthProvider = ({ children }) => {
   }, []);
 
   const loginAdmin = async (email, password) => {
+  try {
     const response = await apiLoginAdmin(email, password);
     const { access_token, refresh_token, user } = response.data;
     localStorage.setItem('access_token', access_token);
@@ -32,9 +33,15 @@ export const AuthProvider = ({ children }) => {
     localStorage.setItem('user', JSON.stringify(user));
     setUser(user);
     return user;
-  };
+  } catch (error) {
+    console.error('Login API error:', error);
+    // Re-throw so the component can handle it
+    throw error;
+  }
+};
 
-  const loginParent = async (phone, password) => {
+const loginParent = async (phone, password) => {
+  try {
     const response = await apiLoginParent(phone, password);
     const { access_token, refresh_token, user } = response.data;
     localStorage.setItem('access_token', access_token);
@@ -42,7 +49,11 @@ export const AuthProvider = ({ children }) => {
     localStorage.setItem('user', JSON.stringify(user));
     setUser(user);
     return user;
-  };
+  } catch (error) {
+    console.error('Login API error:', error);
+    throw error;
+  }
+};
 
   const logout = async () => {
     try {

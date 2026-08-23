@@ -10,7 +10,6 @@ class ParentCreate(BaseModel):
     phone: str
     email: Optional[EmailStr] = None
     password: str
-    nin: Optional[str] = None  # ADD THIS
 
 class ParentUpdate(BaseModel):
     first_name: Optional[str] = None
@@ -18,7 +17,7 @@ class ParentUpdate(BaseModel):
     phone: Optional[str] = None
     email: Optional[EmailStr] = None
     password: Optional[str] = None
-    nin: Optional[str] = None  # ADD THIS
+
 
 class ParentLogin(BaseModel):
     phone: str
@@ -30,6 +29,8 @@ class ParentResponse(BaseModel):
     last_name: str
     phone: str
     email: Optional[str] = None
+    children_count: int
+    outstanding_balance: float
     created_at: Optional[datetime] = None
 
     class Config:

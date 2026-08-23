@@ -2,7 +2,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from .database.session import create_tables
-from .routes import admin_router, parent_router, public_router, webhook_router
+from .routes import admin_router, parent_router, public_router, webhook_router, payment_router
 
 # Create database tables
 create_tables()
@@ -21,6 +21,8 @@ app = FastAPI(
 origins = [
     "http://localhost:5173/",  # Default Vite React local address
     "http://localhost:3000/",  # Default Create-React-App local address
+    "https://amusement-gulp-mule.ngrok-free.dev",
+    "http://10.229.153.23:3000/"
     ]
 
 # Add CORS middleware
@@ -37,6 +39,7 @@ app.include_router(public_router)
 app.include_router(admin_router)
 app.include_router(parent_router)
 app.include_router(webhook_router)
+app.include_router(payment_router)
 
 # Root endpoint
 @app.get("/")

@@ -7,6 +7,7 @@ import {
   AlertCircle,
   ChevronRight,
   TrendingUp,
+  ArrowLeft,
 } from 'lucide-react';
 import { formatCurrency, getStatusBadge } from '../../utils/format';
 import Spinner from '../../components/common/Spinner';
@@ -46,6 +47,14 @@ const Children = () => {
 
   return (
     <div className="space-y-6">
+        {/* Back Button */}
+      <button
+        onClick={() => navigate('/parent/dashboard')}
+        className="inline-flex items-center gap-2 text-sm text-text-secondary hover:text-text-primary transition-colors"
+      >
+        <ArrowLeft className="w-4 h-4" />
+        Back to Dashboard
+      </button>
       {/* Page Header */}
       <div className="flex items-center justify-between flex-wrap gap-4">
         <div>
@@ -116,12 +125,15 @@ const Children = () => {
 
                   {balance > 0 && (
                   <button
-                    onClick={() => navigate(`/parent/pay/${student.id}`)}
-                    className="btn-accent inline-flex items-center gap-2"
-                  >
-                    Pay Now
-                  </button>
-                )}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          navigate(`/parent/pay/${child.student.id}`);
+                        }}
+                        className="btn-accent text-xs py-1.5 px-3 rounded-sm"
+                      >
+                        Pay Now
+                      </button>
+                    )}
                   <ChevronRight className="w-5 h-5 text-text-secondary" />
                 </div>
 

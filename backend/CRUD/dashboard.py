@@ -1,5 +1,5 @@
 from sqlalchemy.orm import Session
-from sqlalchemy import func
+from sqlalchemy import func, and_, case
 from ..database.models import Student, Parent, Enrollment, Payment, FeeStructure, AcademicSession, Class
 from typing import Dict, Any, List, Optional
 from datetime import datetime, timedelta
@@ -8,16 +8,20 @@ from datetime import datetime, timedelta
 # ============ ADMIN DASHBOARD ============
 
 def get_admin_dashboard(db: Session) -> Dict[str, Any]:
-    """Get all statistics for admin dashboard"""
+    """
+    Get all statistics for admin dashboard.
+    OPTIMIZED: Uses joins and aggregations without N+1 query bottlenecks.
+    """
 
-    # Get current session
-    current_session = db.query(AcademicSession).filter(AcademicSession.is_current == True).first()
+    # 1. Get current session
+    current_session = db.query(AcademicSession).filter(
+        AcademicSession.is_current == True
+    ).first()
 
     # Basic counts
     total_students = db.query(Student).count()
     total_parents = db.query(Parent).count()
 
-    # Default response
     result = {
         "current_session": current_session.name if current_session else None,
         "total_students": total_students,
@@ -35,11 +39,76 @@ def get_admin_dashboard(db: Session) -> Dict[str, Any]:
     if not current_session:
         return result
 
-    # Get enrollments for current session
-    enrollments = db.query(Enrollment).filter(
+    # 2. Get active enrollments with fee structure in ONE query
+    enrollments = db.query(
+        Enrollment,
+        Student,
+        Class,
+        FeeStructure.amount.label('fee_amount')
+    ).join(
+        Student, Enrollment.student_id == Student.id
+    ).join(
+        Class, Enrollment.class_id == Class.id
+    ).outerjoin(
+        FeeStructure, and_(
+            FeeStructure.session_id == Enrollment.session_id,
+            FeeStructure.class_id == Enrollment.class_id
+        )
+    ).filter(
         Enrollment.session_id == current_session.id,
         Enrollment.status == "ACTIVE"
     ).all()
+
+    if not enrollments:
+        return result
+
+    enrollment_ids = [e.Enrollment.id for e in enrollments]
+
+    # 3. Get total SUCCESSFUL payments per enrollment
+    payment_totals = db.query(
+        Payment.enrollment_id,
+        func.sum(Payment.amount).label('total_paid')
+    ).filter(
+        Payment.enrollment_id.in_(enrollment_ids),
+        Payment.transaction_status == "success"  # CRITICAL: Filter out pending/failed payments
+    ).group_by(
+        Payment.enrollment_id
+    ).all()
+
+    # Create fast lookup map
+    payment_lookup = {pt.enrollment_id: (pt.total_paid or 0) for pt in payment_totals}
+
+    # 4. Fetch recent successful payments
+    recent_payments_query = db.query(
+        Payment,
+        Student.first_name,
+        Student.last_name,
+        Class.name.label("class_name")
+    ).join(
+        Enrollment, Payment.enrollment_id == Enrollment.id
+    ).join(
+        Student, Enrollment.student_id == Student.id
+    ).join(
+        Class, Enrollment.class_id == Class.id
+    ).filter(
+        Enrollment.session_id == current_session.id,
+        Payment.transaction_status == "success"
+    ).order_by(
+        Payment.payment_date.desc()
+    ).limit(10).all()
+
+    recent_payments = [
+        {
+            "id": p.Payment.id,
+            "student_name": f"{p.first_name} {p.last_name}",
+            "class_name": p.class_name,
+            "amount": p.Payment.amount,
+            "receipt_number": p.Payment.receipt_number,
+            "method": p.Payment.method,
+            "payment_date": p.Payment.payment_date.isoformat() if p.Payment.payment_date else None
+        }
+        for p in recent_payments_query
+    ]
 
     total_collected = 0
     total_outstanding = 0
@@ -48,28 +117,22 @@ def get_admin_dashboard(db: Session) -> Dict[str, Any]:
     unpaid_students = 0
     defaulters = 0
 
-    class_summary = {}
+    class_summary_map = {}
 
-    for enrollment in enrollments:
-        fee = db.query(FeeStructure).filter(
-            FeeStructure.session_id == current_session.id,
-            FeeStructure.class_id == enrollment.class_id
-        ).first()
+    # 5. Process memory aggregation
+    for enrollment_data in enrollments:
+        enrollment = enrollment_data.Enrollment
+        class_obj = enrollment_data.Class
+        fee_amount = int(enrollment_data.fee_amount or 0)
 
-        fee_amount = fee.amount if fee else 0
-
-        total_paid = db.query(func.sum(Payment.amount)).filter(
-            Payment.enrollment_id == enrollment.id
-        ).scalar() or 0
-
+        total_paid = int(payment_lookup.get(enrollment.id, 0))
         balance = fee_amount - total_paid
         total_collected += total_paid
 
-        # Track class summary
-        class_name = enrollment.class_.name
-        if class_name not in class_summary:
-            class_summary[class_name] = {
-                "class_id": enrollment.class_id,
+        class_name = class_obj.name
+        if class_name not in class_summary_map:
+            class_summary_map[class_name] = {
+                "class_id": class_obj.id,
                 "class_name": class_name,
                 "students": 0,
                 "paid": 0,
@@ -79,40 +142,25 @@ def get_admin_dashboard(db: Session) -> Dict[str, Any]:
                 "fee": fee_amount
             }
 
-        class_summary[class_name]["students"] += 1
+        class_summary_map[class_name]["students"] += 1
 
         if balance <= 0:
             paid_students += 1
-            class_summary[class_name]["paid"] += 1
+            class_summary_map[class_name]["paid"] += 1
         elif total_paid > 0:
             partial_students += 1
             defaulters += 1
             total_outstanding += balance
-            class_summary[class_name]["partial"] += 1
-            class_summary[class_name]["outstanding"] += balance
+            class_summary_map[class_name]["partial"] += 1
+            class_summary_map[class_name]["outstanding"] += balance
         else:
             unpaid_students += 1
             defaulters += 1
             total_outstanding += balance
-            class_summary[class_name]["unpaid"] += 1
-            class_summary[class_name]["outstanding"] += balance
+            class_summary_map[class_name]["unpaid"] += 1
+            class_summary_map[class_name]["outstanding"] += balance
 
-    # Get recent payments (last 10)
-    recent_payments = db.query(Payment).order_by(
-        Payment.payment_date.desc()
-    ).limit(10).all()
-
-    recent_payments_data = []
-    for p in recent_payments:
-        student = p.enrollment.student
-        recent_payments_data.append({
-            "receipt": p.receipt_number,
-            "student": f"{student.first_name} {student.last_name}",
-            "amount": p.amount,
-            "date": p.payment_date,
-            "method": p.method
-        })
-
+    # Populate final dictionary response
     result.update({
         "total_collected": total_collected,
         "total_outstanding": total_outstanding,
@@ -120,8 +168,8 @@ def get_admin_dashboard(db: Session) -> Dict[str, Any]:
         "partial_students": partial_students,
         "unpaid_students": unpaid_students,
         "defaulters": defaulters,
-        "recent_payments": recent_payments_data,
-        "class_summary": list(class_summary.values())
+        "recent_payments": recent_payments,
+        "class_summary": list(class_summary_map.values())
     })
 
     return result
@@ -146,7 +194,8 @@ def get_parent_dashboard(db: Session, parent_id: int) -> Dict[str, Any]:
 
     # Get recent payments for this parent's children
     recent_payments = db.query(Payment).join(Enrollment).join(Student).filter(
-        Student.parent_id == parent_id
+        Student.parent_id == parent_id,
+        Payment.transaction_status == "success"
     ).order_by(Payment.payment_date.desc()).limit(5).all()
 
     recent_payments_data = []
@@ -172,81 +221,110 @@ def get_parent_dashboard(db: Session, parent_id: int) -> Dict[str, Any]:
 # ============ GET ALL CLASSES PAYMENT STATUS ============
 
 def get_all_classes_payment_status(db: Session, session_id: Optional[int] = None) -> List[Dict]:
-    """Get payment status for all classes (card view)"""
+    """
+    Get payment status for all classes (card view).
+    OPTIMIZED: Single query using subquery aggregation to eliminate Cartesian product & N+1 issues.
+    """
 
+    # 1. Resolve current session using AcademicSession model
     if not session_id:
-        current_session = db.query(AcademicSession).filter(AcademicSession.is_current == True).first()
+        current_session = db.query(AcademicSession).filter(
+            AcademicSession.is_current == True
+        ).first()
         session_id = current_session.id if current_session else None
 
     if not session_id:
         return []
 
-    classes = db.query(Class).all()
-    result = []
+    # 2. Subquery: Aggregate total SUCCESSFUL payments per enrollment
+    payment_subquery = db.query(
+        Payment.enrollment_id,
+        func.coalesce(func.sum(Payment.amount), 0).label('total_paid')
+    ).filter(
+        Payment.transaction_status == "success"
+    ).group_by(
+        Payment.enrollment_id
+    ).subquery()
 
-    for class_obj in classes:
-        fee = db.query(FeeStructure).filter(
-            FeeStructure.class_id == class_obj.id,
-            FeeStructure.session_id == session_id
-        ).first()
+    # 3. Main Query: Aggregate metrics per Class
+    total_paid_col = func.coalesce(payment_subquery.c.total_paid, 0)
+    fee_col = func.coalesce(FeeStructure.amount, 0)
+    balance_col = fee_col - total_paid_col
 
-        if not fee:
-            continue
-
-        enrollments = db.query(Enrollment).filter(
-            Enrollment.class_id == class_obj.id,
-            Enrollment.session_id == session_id,
+    results = db.query(
+        Class.id.label('class_id'),
+        Class.name.label('class_name'),
+        func.count(Enrollment.id).label('total_students'),
+        func.sum(
+            case((balance_col <= 0, 1), else_=0)
+        ).label('paid_count'),
+        func.sum(
+            case(
+                (
+                    and_(
+                        balance_col > 0,
+                        total_paid_col > 0
+                    ), 1
+                ),
+                else_=0
+            )
+        ).label('partial_count'),
+        func.sum(
+            case((total_paid_col == 0, 1), else_=0)
+        ).label('unpaid_count'),
+        func.sum(
+            case((balance_col > 0, balance_col), else_=0)
+        ).label('total_outstanding'),
+        fee_col.label('fee')
+    ).join(
+        FeeStructure, FeeStructure.class_id == Class.id
+    ).outerjoin(
+        Enrollment, and_(
+            Enrollment.class_id == Class.id,
+            Enrollment.session_id == FeeStructure.session_id,
             Enrollment.status == "ACTIVE"
-        ).all()
+        )
+    ).outerjoin(
+        payment_subquery, payment_subquery.c.enrollment_id == Enrollment.id
+    ).filter(
+        FeeStructure.session_id == session_id
+    ).group_by(
+        Class.id, Class.name, FeeStructure.amount
+    ).all()
 
-        total_students = len(enrollments)
-        paid = 0
-        partial = 0
-        unpaid = 0
-        outstanding = 0
-
-        for enrollment in enrollments:
-            total_paid = db.query(func.sum(Payment.amount)).filter(
-                Payment.enrollment_id == enrollment.id
-            ).scalar() or 0
-
-            balance = fee.amount - total_paid
-
-            if balance <= 0:
-                paid += 1
-            elif total_paid > 0:
-                partial += 1
-                outstanding += balance
-            else:
-                unpaid += 1
-                outstanding += balance
-
-        result.append({
-            "class_id": class_obj.id,
-            "class_name": class_obj.name,
-            "students": total_students,
-            "paid": paid,
-            "partial": partial,
-            "unpaid": unpaid,
-            "outstanding": outstanding,
-            "fee": fee.amount
-        })
-
-    return result
-
+    # 4. Format into clean dictionary array
+    return [
+        {
+            "class_id": r.class_id,
+            "class_name": r.class_name,
+            "students": r.total_students or 0,
+            "paid": int(r.paid_count or 0) if r.total_students else 0,
+            "partial": int(r.partial_count or 0) if r.total_students else 0,
+            "unpaid": int(r.unpaid_count or 0) if r.total_students else 0,
+            "outstanding": int(r.total_outstanding or 0),
+            "fee": int(r.fee or 0)
+        }
+        for r in results
+    ]
 
 # ============ CLASS PAYMENT MONITOR ============
 
 def get_class_payment_monitor(
-        db: Session,
-        class_id: int,
-        session_id: Optional[int] = None,
-        status_filter: Optional[str] = None  # ALL, PAID, PARTIAL, UNPAID, DEFAULTERS
+    db: Session,
+    class_id: int,
+    session_id: Optional[int] = None,
+    status_filter: Optional[str] = None
 ) -> Dict[str, Any]:
-    """Get detailed class payment monitor with student list"""
+    """
+    Get detailed class payment monitor with student list.
+    OPTIMIZED: Uses outerjoin on verified payments and avoids model class bugs.
+    """
 
+    # 1. Resolve academic session
     if not session_id:
-        current_session = db.query(AcademicSession).filter(AcademicSession.is_current == True).first()
+        current_session = db.query(AcademicSession).filter(
+            AcademicSession.is_current == True
+        ).first()
         session_id = current_session.id if current_session else None
 
     if not session_id:
@@ -261,78 +339,77 @@ def get_class_payment_monitor(
         FeeStructure.session_id == session_id
     ).first()
 
+    session_obj = db.query(AcademicSession).filter(
+        AcademicSession.id == session_id
+    ).first()
+
     if not fee:
         return {
             "class_name": class_obj.name,
-            "session_name": db.query(AcademicSession).filter(AcademicSession.id == session_id).first().name,
+            "session_name": session_obj.name if session_obj else None,
             "fee": 0,
             "students": []
         }
 
-    enrollments = db.query(Enrollment).filter(
+    # 2. Get students and sum ONLY successful payments
+    students_data = db.query(
+        Student,
+        Parent,
+        Enrollment,
+        func.coalesce(func.sum(Payment.amount), 0).label('total_paid')
+    ).join(
+        Enrollment, Enrollment.student_id == Student.id
+    ).join(
+        Parent, Student.parent_id == Parent.id
+    ).outerjoin(
+        Payment, and_(
+            Payment.enrollment_id == Enrollment.id,
+            Payment.transaction_status == "success"  # CRITICAL: Filter successful payments only
+        )
+    ).filter(
         Enrollment.class_id == class_id,
         Enrollment.session_id == session_id,
         Enrollment.status == "ACTIVE"
+    ).group_by(
+        Student.id, Parent.id, Enrollment.id
     ).all()
 
-    students_data = []
-    for enrollment in enrollments:
-        total_paid = db.query(func.sum(Payment.amount)).filter(
-            Payment.enrollment_id == enrollment.id
-        ).scalar() or 0
+    students_list = []
+    fee_amount = int(fee.amount)
 
-        balance = fee.amount - total_paid
+    for row in students_data:
+        student = row.Student
+        parent = row.Parent
+        total_paid = int(row.total_paid or 0)
+
+        balance = fee_amount - total_paid
         status = "PAID" if balance <= 0 else "PARTIAL" if total_paid > 0 else "UNPAID"
 
-        student_data = {
-            "admission_number": enrollment.student.admission_number,
-            "student_name": f"{enrollment.student.first_name} {enrollment.student.last_name}",
-            "parent_name": f"{enrollment.student.parent.first_name} {enrollment.student.parent.last_name}",
-            "parent_phone": enrollment.student.parent.phone,
+        student_dict = {
+            "admission_number": student.admission_number,
+            "student_name": f"{student.first_name} {student.last_name}",
+            "parent_name": f"{parent.first_name} {parent.last_name}",
+            "parent_phone": parent.phone,
             "paid": total_paid,
             "balance": balance,
             "status": status,
-            "enrollment_id": enrollment.id,
-            "student_id": enrollment.student_id
+            "enrollment_id": row.Enrollment.id,
+            "student_id": student.id
         }
 
-        # Apply filter
-        if status_filter and status_filter != "ALL":
-            if status_filter == "DEFAULTERS" and status in ["PARTIAL", "UNPAID"]:
-                students_data.append(student_data)
-            elif status_filter == status:
-                students_data.append(student_data)
+        # Apply filtering logic
+        if status_filter and status_filter.upper() != "ALL":
+            target_status = status_filter.upper()
+            if target_status == "DEFAULTERS" and status in ["PARTIAL", "UNPAID"]:
+                students_list.append(student_dict)
+            elif target_status == status:
+                students_list.append(student_dict)
         else:
-            students_data.append(student_data)
+            students_list.append(student_dict)
 
     return {
         "class_name": class_obj.name,
-        "session_name": db.query(AcademicSession).filter(AcademicSession.id == session_id).first().name,
-        "fee": fee.amount,
-        "students": students_data
+        "session_name": session_obj.name if session_obj else None,
+        "fee": fee_amount,
+        "students": students_list
     }
-
-
-# ============ RECENT PAYMENTS ============
-
-def get_recent_payments(db: Session, limit: int = 10) -> List[Dict]:
-    """Get recent payments with details"""
-    payments = db.query(Payment).order_by(
-        Payment.payment_date.desc()
-    ).limit(limit).all()
-
-    result = []
-    for p in payments:
-        student = p.enrollment.student
-        result.append({
-            "receipt": p.receipt_number,
-            "student": f"{student.first_name} {student.last_name}",
-            "admission_number": student.admission_number,
-            "amount": p.amount,
-            "date": p.payment_date,
-            "method": p.method,
-            "class": p.enrollment.class_.name,
-            "session": p.enrollment.session.name
-        })
-
-    return result

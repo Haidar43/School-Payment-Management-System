@@ -54,7 +54,8 @@ def get_payment_report(
         fee_amount = fee.amount if fee else 0
 
         total_paid = db.query(func.sum(Payment.amount)).filter(
-            Payment.enrollment_id == enrollment.id
+            Payment.enrollment_id == enrollment.id,
+            Payment.transaction_status == "success"
         ).scalar() or 0
 
         balance = fee_amount - total_paid
@@ -119,7 +120,8 @@ def get_outstanding_report(db: Session, session_id: Optional[int] = None) -> Lis
 
         fee_amount = fee.amount if fee else 0
         total_paid = db.query(func.sum(Payment.amount)).filter(
-            Payment.enrollment_id == enrollment.id
+            Payment.enrollment_id == enrollment.id,
+            Payment.transaction_status == "success"
         ).scalar() or 0
 
         balance = fee_amount - total_paid
@@ -150,7 +152,8 @@ def get_daily_collection_report(db: Session, target_date: date) -> Dict:
 
     payments = db.query(Payment).filter(
         Payment.payment_date >= start_datetime,
-        Payment.payment_date <= end_datetime
+        Payment.payment_date <= end_datetime,
+        Payment.transaction_status == "success"
     ).all()
 
     total_amount = sum(p.amount for p in payments)
@@ -194,7 +197,8 @@ def get_monthly_collection_report(db: Session, year: int, month: int) -> Dict:
 
     payments = db.query(Payment).filter(
         Payment.payment_date >= start_date,
-        Payment.payment_date < end_date
+        Payment.payment_date < end_date,
+        Payment.transaction_status == "success"
     ).all()
 
     total_amount = sum(p.amount for p in payments)
@@ -235,7 +239,8 @@ def get_session_collections_report(db: Session) -> List[Dict]:
 
         for enrollment in enrollments:
             total_paid = db.query(func.sum(Payment.amount)).filter(
-                Payment.enrollment_id == enrollment.id
+                Payment.enrollment_id == enrollment.id,
+                Payment.transaction_status == "success"
             ).scalar() or 0
 
             total_collected += total_paid
@@ -320,7 +325,8 @@ def get_outstanding_by_class(db: Session, session_id: Optional[int] = None) -> L
             total_fee += fee_amount
 
             paid = db.query(func.sum(Payment.amount)).filter(
-                Payment.enrollment_id == enrollment.id
+                Payment.enrollment_id == enrollment.id,
+                Payment.transaction_status == "success"
             ).scalar() or 0
 
             total_paid += paid

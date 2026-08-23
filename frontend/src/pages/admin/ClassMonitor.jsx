@@ -56,7 +56,7 @@ const ClassMonitor = () => {
 
   useEffect(() => {
     fetchSessions();
-    fetchClasses(); // Added fetch call
+    fetchClasses();
   }, []);
 
   useEffect(() => {
@@ -148,80 +148,108 @@ const ClassMonitor = () => {
     setSelectedSession(Number(e.target.value));
   };
 
-  const handlePrintUnpaid = () => {
-    const unpaidStudents = classData?.students?.filter(
-      (s) => s.status === 'UNPAID' || s.status === 'PARTIAL'
-    );
+      const handlePrintUnpaid = () => {
+      const unpaidStudents = classData?.students?.filter(
+        (s) => s.status === 'UNPAID' || s.status === 'PARTIAL'
+      );
 
-    if (!unpaidStudents || unpaidStudents.length === 0) {
-      toast.error('No unpaid students to print');
-      return;
-    }
+      if (!unpaidStudents || unpaidStudents.length === 0) {
+        toast.error('No unpaid students to print');
+        return;
+      }
 
-    const printContent = `
-      <html>
-        <head>
-          <title>Unpaid Students - ${classData?.class_name}</title>
-          <style>
-            body { font-family: Arial, sans-serif; padding: 40px; }
-            h1 { font-size: 24px; margin-bottom: 4px; }
-            h2 { font-size: 18px; font-weight: normal; color: #666; margin-top: 0; }
-            table { width: 100%; border-collapse: collapse; margin-top: 20px; }
-            th { text-align: left; padding: 10px 8px; border-bottom: 2px solid #333; }
-            td { padding: 8px; border-bottom: 1px solid #ddd; }
-            .amount { text-align: right; }
-            .total { margin-top: 20px; font-weight: bold; }
-          </style>
-        </head>
-        <body>
-          <h1>${classData?.class_name}</h1>
-          <h2>Unpaid Students List - ${
-            sessions.find((s) => s.id === selectedSession)?.name
-          }</h2>
-          <table>
-            <thead>
-              <tr>
-                <th>#</th>
-                <th>Admission</th>
-                <th>Student Name</th>
-                <th>Parent Name</th>
-                <th class="amount">Fee</th>
-                <th class="amount">Paid</th>
-                <th class="amount">Balance</th>
-                <th>Status</th>
-              </tr>
-            </thead>
-            <tbody>
-              ${unpaidStudents
-                .map(
-                  (s, i) => `
+      // Safe helper to strip strings/commas and enforce numerical values
+      const safeNum = (val) => {
+        if (val === null || val === undefined) return 0;
+        if (typeof val === 'number') return val;
+
+        // Convert to string
+        let cleaned = String(val);
+
+        // Remove currency symbols, commas, and spaces
+        cleaned = cleaned.replace(/[₦$,]/g, '').trim();
+        cleaned = cleaned.replace(/,/g, '');
+
+        // Parse as float
+        const parsed = parseFloat(cleaned);
+        return isNaN(parsed) ? 0 : parsed;
+      };
+
+      // Convert kobo to Naira and format
+      const formatNaira = (amountInKobo) => {
+        const amountInNaira = amountInKobo / 100;
+        return Math.round(amountInNaira).toLocaleString('en-US');
+      };
+
+      const printContent = `
+        <html>
+          <head>
+            <title>Unpaid Students - ${classData?.class_name}</title>
+            <style>
+              body { font-family: Arial, sans-serif; padding: 40px; }
+              h1 { font-size: 24px; margin-bottom: 4px; }
+              h2 { font-size: 18px; font-weight: normal; color: #666; margin-top: 0; }
+              table { width: 100%; border-collapse: collapse; margin-top: 20px; }
+              th { text-align: left; padding: 10px 8px; border-bottom: 2px solid #333; }
+              td { padding: 8px; border-bottom: 1px solid #ddd; }
+              .amount { text-align: right; font-family: monospace; }
+              .total { margin-top: 20px; font-weight: bold; }
+            </style>
+          </head>
+          <body>
+            <h1>${classData?.class_name}</h1>
+            <h2>Unpaid Students List - ${
+              sessions.find((s) => s.id === selectedSession)?.name || ''
+            }</h2>
+            <table>
+              <thead>
                 <tr>
-                  <td>${i + 1}</td>
-                  <td>${s.admission_number}</td>
-                  <td>${s.student_name}</td>
-                  <td>${s.parent_name}</td>
-                  <td class="amount">₦${(s.balance + s.paid).toLocaleString()}</td>
-                  <td class="amount">₦${s.paid.toLocaleString()}</td>
-                  <td class="amount">₦${s.balance.toLocaleString()}</td>
-                  <td>${s.status}</td>
+                  <th>#</th>
+                  <th>Admission</th>
+                  <th>Student Name</th>
+                  <th>Parent Name</th>
+                  <th class="amount">Fee</th>
+                  <th class="amount">Paid</th>
+                  <th class="amount">Balance</th>
+                  <th>Status</th>
                 </tr>
-              `
-                )
-                .join('')}
-            </tbody>
-          </table>
-          <div class="total">
-            Total Unpaid Students: ${unpaidStudents.length}
-          </div>
-        </body>
-      </html>
-    `;
+              </thead>
+              <tbody>
+                ${unpaidStudents
+                  .map((s, i) => {
+                    // Convert kobo to naira
+                    const paid = safeNum(s.paid) / 100;
+                    const balance = safeNum(s.balance) / 100;
+                    const fee = paid + balance;
 
-    const printWindow = window.open('', '_blank');
-    printWindow.document.write(printContent);
-    printWindow.document.close();
-    printWindow.print();
-  };
+                    return `
+                      <tr>
+                        <td>${i + 1}</td>
+                        <td>${s.admission_number || ''}</td>
+                        <td>${s.student_name || ''}</td>
+                        <td>${s.parent_name || ''}</td>
+                        <td class="amount">₦${Math.round(fee).toLocaleString('en-US')}</td>
+                        <td class="amount">₦${Math.round(paid).toLocaleString('en-US')}</td>
+                        <td class="amount">₦${Math.round(balance).toLocaleString('en-US')}</td>
+                        <td>${s.status || ''}</td>
+                      </tr>
+                    `;
+                  })
+                  .join('')}
+              </tbody>
+            </table>
+            <div class="total">
+              Total Unpaid Students: ${unpaidStudents.length}
+            </div>
+          </body>
+        </html>
+      `;
+
+      const printWindow = window.open('', '_blank');
+      printWindow.document.write(printContent);
+      printWindow.document.close();
+      printWindow.print();
+    };
 
   if (loading) {
     return (
@@ -376,10 +404,10 @@ const ClassMonitor = () => {
                 <th>Student</th>
                 <th>Parent</th>
                 <th>Parent Phone</th>
-                <th className="text-right">Paid</th>
-                <th className="text-right">Balance</th>
+                <th className="text-left">Paid</th>
+                <th className="text-left">Balance</th>
                 <th>Status</th>
-                <th className="text-right">Actions</th>
+                <th className="text-left">Actions</th>
               </tr>
             </thead>
             <tbody>
@@ -405,16 +433,16 @@ const ClassMonitor = () => {
                       <td className="font-medium">{student.student_name}</td>
                       <td className="text-sm">{student.parent_name}</td>
                       <td className="text-sm">{student.parent_phone}</td>
-                      <td className="text-right">
+                      <td className="text-left">
                         {formatCurrency(student.paid)}
                       </td>
-                      <td className="text-right font-medium text-status-unpaid">
+                      <td className="text-left font-medium text-status-unpaid">
                         {formatCurrency(student.balance)}
                       </td>
                       <td>
                         <span className={badge.className}>{badge.label}</span>
                       </td>
-                      <td className="text-right">
+                      <td className="text-left">
                         <button
                           onClick={() =>
                             navigate(

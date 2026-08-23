@@ -94,7 +94,8 @@ def get_class_with_stats(db: Session, class_id: int, session_id: Optional[int] =
 
         for enrollment in enrollments:
             total_paid = db.query(func.sum(Payment.amount)).filter(
-                Payment.enrollment_id == enrollment.id
+                Payment.enrollment_id == enrollment.id,
+                Payment.transaction_status == "success"
             ).scalar() or 0
 
             fee_amount = fee.amount if fee else 0

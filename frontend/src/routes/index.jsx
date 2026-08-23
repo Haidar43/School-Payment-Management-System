@@ -42,6 +42,10 @@ const router = createBrowserRouter([
     element: <PrivateRoute />,
     children: [
       {
+        path: "payment/verify",
+        element: <PaymentVerify />
+      },
+      {
         path: "admin",
         element: <RoleRoute allowedRoles={["admin"]} />,
         children: [
@@ -80,8 +84,9 @@ const router = createBrowserRouter([
               { path: "children", element: <Children /> },
               { path: "children/:id", element: <ChildDetails /> },
               { path: "payments", element: <ParentPaymentHistory /> },
-              { path: "profile", element: <ParentProfile /> }
-
+              { path: "profile", element: <ParentProfile /> },
+              { path: 'pay/:id', element: <PayNow /> },
+              { path: "payment/verify", element: <PaymentVerify /> },
             ]
           }
         ]

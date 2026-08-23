@@ -81,33 +81,40 @@ const PayNow = () => {
   };
 
   const handleSubmit = async (e) => {
-    e.preventDefault();
+  e.preventDefault();
 
-    if (!validateForm()) {
-      return;
+  if (!validateForm()) {
+    return;
+  }
+
+  setSubmitting(true);
+  try {
+    const amountNum = parseFloat(amount); // In Naira, NOT kobo
+    const studentId = parseInt(id);
+
+    console.log('Sending payment request:', { student_id: studentId, amount: amountNum });
+
+    const response = await initializePayment(studentId, amountNum);
+
+    console.log('Payment response:', response.data);
+
+    // Redirect to Paystack
+    const { authorization_url } = response.data;
+    if (authorization_url) {
+      window.location.href = authorization_url;
+    } else {
+      toast.error('Failed to initialize payment');
     }
-
-    setSubmitting(true);
-    try {
-      const amountNum = parseFloat(amount) * 100; // Convert to kobo
-      const response = await initializePayment(parseInt(id), amountNum);
-
-      // Redirect to Paystack
-      const { authorization_url } = response.data;
-      if (authorization_url) {
-        window.location.href = authorization_url;
-      } else {
-        toast.error('Failed to initialize payment');
-      }
-    } catch (error) {
-      console.error('Error initializing payment:', error);
-      const message = error.response?.data?.detail || 'Failed to start payment';
-      toast.error(message);
-      setErrors({ general: message });
-    } finally {
-      setSubmitting(false);
-    }
-  };
+  } catch (error) {
+    console.error('Error initializing payment:', error);
+    console.error('Error response:', error.response?.data);
+    const message = error.response?.data?.detail || 'Failed to start payment';
+    toast.error(message);
+    setErrors({ general: message });
+  } finally {
+    setSubmitting(false);
+  }
+};
 
   if (loading) {
     return (
@@ -142,11 +149,11 @@ const PayNow = () => {
     <div className="max-w-2xl mx-auto space-y-6">
       {/* Back Button */}
       <button
-        onClick={() => navigate(`/parent/children/${id}`)}
+        onClick={() => navigate(-1)}
         className="inline-flex items-center gap-2 text-sm text-text-secondary hover:text-text-primary transition-colors"
       >
         <ArrowLeft className="w-4 h-4" />
-        Back to Child Details
+        Back
       </button>
 
       {/* Header */}

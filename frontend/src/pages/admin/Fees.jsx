@@ -273,14 +273,14 @@ const Fees = () => {
                   <tr key={fee.id}>
                     <td className="text-sm text-text-secondary">{index + 1}</td>
                     <td className="font-medium">{getClassName(fee.class_id)}</td>
-                    <td className="text-right font-medium text-text-primary">
+                    <td className="text-left font-medium text-text-primary">
                       {formatCurrency(fee.amount)}
                     </td>
                     <td className="text-sm text-text-secondary">
                       {getSessionName(fee.session_id)}
                     </td>
-                    <td className="text-right">
-                      <div className="flex items-center justify-end gap-2">
+                    <td className="text-left">
+                      <div className="flex items-center justify-start gap-2">
                         <button
                           onClick={() => openModal(fee)}
                           className="p-1.5 text-text-secondary hover:text-accent rounded-sm hover:bg-background transition-colors"

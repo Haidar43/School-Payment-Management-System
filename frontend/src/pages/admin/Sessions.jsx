@@ -166,7 +166,7 @@ const Sessions = () => {
                         <span className="badge-info">Inactive</span>
                       )}
                     </td>
-                    <td className="text-center text-sm">
+                    <td className="text-left text-sm">
                       <button
                         onClick={() => handleViewStats(session.id)}
                         className="text-accent hover:text-accent-light font-medium"
@@ -174,8 +174,8 @@ const Sessions = () => {
                         View Stats
                       </button>
                     </td>
-                    <td className="text-right">
-                      <div className="flex items-center justify-end gap-2">
+                    <td className="text-left">
+                      <div className="flex items-center justify-start gap-2">
                         {!session.is_current && (
                           <button
                             onClick={() => handleActivate(session.id)}

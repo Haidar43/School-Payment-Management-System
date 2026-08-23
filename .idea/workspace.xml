@@ -10,19 +10,48 @@
       <change afterPath="$PROJECT_DIR$/frontend/src/pages/parent/PaymentVerify.jsx" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.env" beforeDir="false" afterPath="$PROJECT_DIR$/.env" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/backend/CRUD/class_crud.py" beforeDir="false" afterPath="$PROJECT_DIR$/backend/CRUD/class_crud.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/backend/CRUD/dashboard.py" beforeDir="false" afterPath="$PROJECT_DIR$/backend/CRUD/dashboard.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/backend/CRUD/enrollment.py" beforeDir="false" afterPath="$PROJECT_DIR$/backend/CRUD/enrollment.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/backend/CRUD/payment.py" beforeDir="false" afterPath="$PROJECT_DIR$/backend/CRUD/payment.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/backend/CRUD/reports.py" beforeDir="false" afterPath="$PROJECT_DIR$/backend/CRUD/reports.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/backend/CRUD/session_crud.py" beforeDir="false" afterPath="$PROJECT_DIR$/backend/CRUD/session_crud.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/backend/CRUD/student.py" beforeDir="false" afterPath="$PROJECT_DIR$/backend/CRUD/student.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/backend/crud/parent.py" beforeDir="false" afterPath="$PROJECT_DIR$/backend/crud/parent.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/backend/database/models.py" beforeDir="false" afterPath="$PROJECT_DIR$/backend/database/models.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/backend/main.py" beforeDir="false" afterPath="$PROJECT_DIR$/backend/main.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/backend/routes/__init__.py" beforeDir="false" afterPath="$PROJECT_DIR$/backend/routes/__init__.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/backend/routes/admin_routes.py" beforeDir="false" afterPath="$PROJECT_DIR$/backend/routes/admin_routes.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/backend/routes/webhook_routes.py" beforeDir="false" afterPath="$PROJECT_DIR$/backend/routes/webhook_routes.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/backend/schemas/parent.py" beforeDir="false" afterPath="$PROJECT_DIR$/backend/schemas/parent.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/backend/schemas/payment.py" beforeDir="false" afterPath="$PROJECT_DIR$/backend/schemas/payment.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/backend/schemas/student.py" beforeDir="false" afterPath="$PROJECT_DIR$/backend/schemas/student.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/backend/utils/paystack.py" beforeDir="false" afterPath="$PROJECT_DIR$/backend/utils/paystack.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/frontend/.env" beforeDir="false" afterPath="$PROJECT_DIR$/frontend/.env" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/frontend/dist/assets/index--Ag1Ue-R.js" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/frontend/dist/assets/index-DEr9w3Wt.css" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/frontend/dist/index.html" beforeDir="false" afterPath="$PROJECT_DIR$/frontend/dist/index.html" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/frontend/src/api/admin.js" beforeDir="false" afterPath="$PROJECT_DIR$/frontend/src/api/admin.js" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/frontend/src/api/client.js" beforeDir="false" afterPath="$PROJECT_DIR$/frontend/src/api/client.js" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/frontend/src/api/parent.js" beforeDir="false" afterPath="$PROJECT_DIR$/frontend/src/api/parent.js" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/frontend/src/components/layout/AdminLayout.jsx" beforeDir="false" afterPath="$PROJECT_DIR$/frontend/src/components/layout/AdminLayout.jsx" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/frontend/src/components/layout/Sidebar.jsx" beforeDir="false" afterPath="$PROJECT_DIR$/frontend/src/components/layout/Sidebar.jsx" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/frontend/src/components/parents/ParentForm.jsx" beforeDir="false" afterPath="$PROJECT_DIR$/frontend/src/components/parents/ParentForm.jsx" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/frontend/src/context/AuthContext.jsx" beforeDir="false" afterPath="$PROJECT_DIR$/frontend/src/context/AuthContext.jsx" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/frontend/src/pages/admin/ClassMonitor.jsx" beforeDir="false" afterPath="$PROJECT_DIR$/frontend/src/pages/admin/ClassMonitor.jsx" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/frontend/src/pages/admin/Fees.jsx" beforeDir="false" afterPath="$PROJECT_DIR$/frontend/src/pages/admin/Fees.jsx" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/frontend/src/pages/admin/ParentProfile.jsx" beforeDir="false" afterPath="$PROJECT_DIR$/frontend/src/pages/admin/ParentProfile.jsx" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/frontend/src/pages/admin/Parents.jsx" beforeDir="false" afterPath="$PROJECT_DIR$/frontend/src/pages/admin/Parents.jsx" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/frontend/src/pages/admin/Payments.jsx" beforeDir="false" afterPath="$PROJECT_DIR$/frontend/src/pages/admin/Payments.jsx" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/frontend/src/pages/admin/Sessions.jsx" beforeDir="false" afterPath="$PROJECT_DIR$/frontend/src/pages/admin/Sessions.jsx" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/frontend/src/pages/admin/StudentProfile.jsx" beforeDir="false" afterPath="$PROJECT_DIR$/frontend/src/pages/admin/StudentProfile.jsx" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/frontend/src/pages/admin/Students.jsx" beforeDir="false" afterPath="$PROJECT_DIR$/frontend/src/pages/admin/Students.jsx" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/frontend/src/pages/auth/Login.jsx" beforeDir="false" afterPath="$PROJECT_DIR$/frontend/src/pages/auth/Login.jsx" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/frontend/src/pages/parent/ChildDetails.jsx" beforeDir="false" afterPath="$PROJECT_DIR$/frontend/src/pages/parent/ChildDetails.jsx" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/frontend/src/pages/parent/Children.jsx" beforeDir="false" afterPath="$PROJECT_DIR$/frontend/src/pages/parent/Children.jsx" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/frontend/src/pages/parent/Dashboard.jsx" beforeDir="false" afterPath="$PROJECT_DIR$/frontend/src/pages/parent/Dashboard.jsx" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/frontend/src/routes/index.jsx" beforeDir="false" afterPath="$PROJECT_DIR$/frontend/src/routes/index.jsx" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/school_payment.db" beforeDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -30,7 +59,7 @@
     <option name="LAST_RESOLUTION" value="IGNORE" />
   </component>
   <component name="EmbeddingIndexingInfo">
-    <option name="cachedIndexableFilesCount" value="15469" />
+    <option name="cachedIndexableFilesCount" value="15472" />
   </component>
   <component name="FileTemplateManagerImpl">
     <option name="RECENT_TEMPLATES">
@@ -67,7 +96,8 @@
     &quot;RunOnceActivity.ShowReadmeOnStart&quot;: &quot;true&quot;,
     &quot;RunOnceActivity.TerminalTabsStorage.copyFrom.TerminalArrangementManager.252&quot;: &quot;true&quot;,
     &quot;RunOnceActivity.git.unshallow&quot;: &quot;true&quot;,
-    &quot;git-widget-placeholder&quot;: &quot;main&quot;
+    &quot;git-widget-placeholder&quot;: &quot;main&quot;,
+    &quot;settings.editor.selected.configurable&quot;: &quot;preferences.lookFeel&quot;
   }
 }</component>
   <component name="RecentsManager">

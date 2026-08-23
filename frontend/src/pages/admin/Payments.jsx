@@ -98,17 +98,162 @@ const Payments = () => {
   };
 
   const handlePrintReceipt = (payment) => {
-    // For now, just show the receipt
-    toast.info('Print receipt coming soon!');
-  };
-
-  if (loading && payments.length === 0) {
-    return (
-      <div className="flex items-center justify-center h-96">
-        <Spinner size="lg" />
-      </div>
-    );
+  if (!payment) {
+    toast.error('No payment data to print');
+    return;
   }
+
+  // Create print-friendly receipt content
+  const printContent = `
+    <!DOCTYPE html>
+    <html>
+      <head>
+        <title>Payment Receipt - ${payment.receipt_number}</title>
+        <style>
+          body {
+            font-family: 'Courier New', monospace;
+            max-width: 400px;
+            margin: 0 auto;
+            padding: 40px 20px;
+            background: #ffffff;
+          }
+          .receipt-header {
+            text-align: center;
+            border-bottom: 2px dashed #333;
+            padding-bottom: 16px;
+            margin-bottom: 16px;
+          }
+          .receipt-header h1 {
+            font-size: 24px;
+            margin: 0;
+            letter-spacing: 2px;
+          }
+          .receipt-header p {
+            margin: 4px 0;
+            color: #666;
+            font-size: 14px;
+          }
+          .receipt-details {
+            margin-bottom: 16px;
+          }
+          .receipt-row {
+            display: flex;
+            justify-content: space-between;
+            padding: 6px 0;
+            border-bottom: 1px dotted #eee;
+            font-size: 14px;
+          }
+          .receipt-row .label {
+            color: #666;
+          }
+          .receipt-row .value {
+            font-weight: bold;
+          }
+          .receipt-amount {
+            font-size: 20px;
+            font-weight: bold;
+            text-align: center;
+            padding: 12px 0;
+            margin: 12px 0;
+            border-top: 2px solid #333;
+            border-bottom: 2px solid #333;
+          }
+          .receipt-footer {
+            text-align: center;
+            margin-top: 16px;
+            padding-top: 16px;
+            border-top: 2px dashed #333;
+            color: #666;
+            font-size: 12px;
+          }
+          .receipt-status {
+            display: inline-block;
+            padding: 4px 12px;
+            border-radius: 4px;
+            font-size: 12px;
+            font-weight: bold;
+            background: #15803D;
+            color: white;
+          }
+        </style>
+      </head>
+      <body>
+        <div class="receipt-header">
+          <h1>SCHOOLPAY</h1>
+          <p>Payment Receipt</p>
+        </div>
+
+        <div class="receipt-details">
+          <div class="receipt-row">
+            <span class="label">Receipt No.</span>
+            <span class="value">${payment.receipt_number}</span>
+          </div>
+          <div class="receipt-row">
+            <span class="label">Date</span>
+            <span class="value">${formatDate(payment.payment_date)}</span>
+          </div>
+          <div class="receipt-row">
+            <span class="label">Student</span>
+            <span class="value">${payment.student_name}</span>
+          </div>
+          <div class="receipt-row">
+            <span class="label">Admission</span>
+            <span class="value">${payment.admission_number}</span>
+          </div>
+          <div class="receipt-row">
+            <span class="label">Class</span>
+            <span class="value">${payment.class_name}</span>
+          </div>
+          <div class="receipt-row">
+            <span class="label">Session</span>
+            <span class="value">${payment.session_name}</span>
+          </div>
+          <div class="receipt-row">
+            <span class="label">Payment Method</span>
+            <span class="value">${payment.method}</span>
+          </div>
+        </div>
+
+        <div class="receipt-amount">
+          Amount: ${formatCurrency(payment.amount)}
+        </div>
+
+        ${payment.remarks ? `
+          <div class="receipt-row">
+            <span class="label">Remarks</span>
+            <span class="value">${payment.remarks}</span>
+          </div>
+        ` : ''}
+
+        <div style="text-align: center; margin-top: 12px;">
+          <span class="receipt-status">PAID</span>
+        </div>
+
+        <div class="receipt-footer">
+          <p>Thank you for your payment!</p>
+          <p>This is a system-generated receipt.</p>
+        </div>
+      </body>
+    </html>
+  `;
+
+  // Open print window
+  const printWindow = window.open('', '_blank', 'width=600,height=800');
+  if (!printWindow) {
+    toast.error('Please allow popups to print receipts');
+    return;
+  }
+
+  printWindow.document.write(printContent);
+  printWindow.document.close();
+  printWindow.focus();
+  printWindow.print();
+
+  // Close after print or on close
+  printWindow.onafterprint = () => {
+    printWindow.close();
+  };
+};
 
   return (
     <div className="space-y-6">
@@ -226,10 +371,10 @@ const Payments = () => {
                     <td className="text-sm">{payment.class_name}</td>
                     <td className="text-sm">{payment.session_name}</td>
                     <td className="text-sm">{payment.method}</td>
-                    <td className="text-right font-medium">{formatCurrency(payment.amount)}</td>
+                    <td className="text-left font-medium">{formatCurrency(payment.amount)}</td>
                     <td className="text-sm">{formatDate(payment.payment_date)}</td>
-                    <td className="text-right">
-                      <div className="flex items-center justify-end gap-2">
+                    <td className="text-left">
+                      <div className="flex items-center justify-center gap-2">
                         <button
                           onClick={() => handleViewPayment(payment)}
                           className="p-1.5 text-text-secondary hover:text-text-primary rounded-sm hover:bg-background transition-colors"
