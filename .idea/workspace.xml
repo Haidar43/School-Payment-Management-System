@@ -5,11 +5,9 @@
   </component>
   <component name="ChangeListManager">
     <list default="true" id="339ea4c7-1625-46b2-a472-1db0fb24a813" name="Changes" comment="">
-      <change afterPath="$PROJECT_DIR$/backend/Procfile" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/backend/railway.json" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/backend/start.sh" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/nixpacks.toml" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/backend/Procfile" beforeDir="false" afterPath="$PROJECT_DIR$/backend/Procfile" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/backend/start.sh" beforeDir="false" afterPath="$PROJECT_DIR$/backend/start.sh" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
