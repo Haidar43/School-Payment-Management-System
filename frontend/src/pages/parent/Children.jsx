@@ -113,6 +113,15 @@ const Children = () => {
                       </div>
                     </div>
                   </div>
+
+                  {balance > 0 && (
+                  <button
+                    onClick={() => navigate(`/parent/pay/${student.id}`)}
+                    className="btn-accent inline-flex items-center gap-2"
+                  >
+                    Pay Now
+                  </button>
+                )}
                   <ChevronRight className="w-5 h-5 text-text-secondary" />
                 </div>
 

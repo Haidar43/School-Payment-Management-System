@@ -88,21 +88,6 @@ const ParentProfile = () => {
     );
   }
 
-const handleValidateNIN = async () => {
-  setValidating(true);
-  try {
-    const response = await validateParentNIN(id);
-    toast.success('NIN validated successfully!');
-    fetchParent();
-  } catch (error) {
-    console.error('Error validating NIN:', error);
-    const message = error.response?.data?.detail || 'Failed to validate NIN';
-    toast.error(message);
-  } finally {
-    setValidating(false);
-  }
-};
-
   const parentData = parent.parent || parent;
   const children = parent.children || [];
   const totalOutstanding = parent.outstanding_balance || 0;
@@ -142,23 +127,6 @@ const handleValidateNIN = async () => {
             </div>
           </div>
         </div>
-
-        {!parentData.nin_validated && parentData.nin && (
-          <button
-            onClick={handleValidateNIN}
-            className="btn-outline inline-flex items-center gap-2"
-            disabled={validating}
-          >
-            {validating ? (
-              <>
-                <Spinner size="sm" />
-                Validating...
-              </>
-            ) : (
-              'Validate NIN'
-            )}
-          </button>
-        )}
 
         <div className="flex items-center gap-2 flex-wrap">
           <button
@@ -200,17 +168,6 @@ const handleValidateNIN = async () => {
 
       <div className="flex items-center gap-3">
       <User className="w-4 h-4 text-text-secondary" />
-      <div>
-        <p className="text-xs text-text-secondary">NIN</p>
-        <p className="text-sm font-medium text-text-primary">
-          {parentData.nin || 'Not provided'}
-          {parentData.nin && (
-            <span className={`ml-2 text-xs ${parentData.nin_validated ? 'text-status-paid' : 'text-status-unpaid'}`}>
-              {parentData.nin_validated ? '✅ Validated' : '❌ Not validated'}
-            </span>
-          )}
-        </p>
-      </div>
       </div>
 
       {/* Children List */}

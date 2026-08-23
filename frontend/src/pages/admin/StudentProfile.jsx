@@ -34,7 +34,6 @@ const StudentProfile = () => {
   const [student, setStudent] = useState(null);
   const [showPromoteModal, setShowPromoteModal] = useState(false);
   const [deleteConfirm, setDeleteConfirm] = useState(null);
-  const [generatingDVA, setGeneratingDVA] = useState(false);
 
   useEffect(() => {
     fetchStudent();
@@ -64,21 +63,6 @@ const StudentProfile = () => {
       toast.error('Failed to delete student');
     }
     setDeleteConfirm(null);
-  };
-
-  const handleGenerateDVA = async () => {
-  setGeneratingDVA(true);
-  try {
-    const response = await generateStudentDVA(id);
-    toast.success('Virtual account generated successfully!');
-    fetchStudent();
-  } catch (error) {
-    console.error('Error generating DVA:', error);
-    const message = error.response?.data?.detail || 'Failed to generate virtual account';
-    toast.error(message);
-  } finally {
-    setGeneratingDVA(false);
-   }
   };
 
   const handlePromoteSuccess = () => {
@@ -388,23 +372,7 @@ const StudentProfile = () => {
                   </p>
                 )}
               </div>
-              <button
-                onClick={handleGenerateDVA}
-                className="btn-accent inline-flex items-center gap-2"
-                disabled={generatingDVA || !student.parent?.nin_validated}
-              >
-                {generatingDVA ? (
-                  <>
-                    <Spinner size="sm" />
-                    Generating...
-                  </>
-                ) : (
-                  <>
-                    <CreditCard className="w-4 h-4" />
-                    Generate Virtual Account
-                  </>
-                )}
-              </button>
+
             </div>
           )}
         </div>

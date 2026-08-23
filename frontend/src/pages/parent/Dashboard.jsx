@@ -156,6 +156,17 @@ const ParentDashboard = () => {
                       <p className="text-xs text-text-secondary">Balance</p>
                     </div>
                     <span className={badge.className}>{badge.label}</span>
+                      {balance > 0 && (
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          navigate(`/parent/pay/${child.student.id}`);
+                        }}
+                        className="btn-accent text-xs py-1.5 px-3 rounded-sm"
+                      >
+                        Pay Now
+                      </button>
+                    )}
                     <ChevronRight className="w-4 h-4 text-text-secondary" />
                   </div>
                 </button>

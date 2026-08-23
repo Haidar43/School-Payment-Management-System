@@ -1,4 +1,4 @@
-from sqlalchemy import Column, Integer, String, Boolean, Date, DateTime, ForeignKey, UniqueConstraint
+from sqlalchemy import Column, Integer, String, Boolean, Date, DateTime, ForeignKey, UniqueConstraint, JSON
 from sqlalchemy.orm import relationship
 from datetime import datetime
 from .session import Base
@@ -34,10 +34,6 @@ class Parent(Base):
     email = Column(String, unique=True, nullable=True)
     password = Column(String, nullable=False)
     created_at = Column(DateTime, default=datetime.utcnow)
-
-    nin = Column(String, nullable=True)  # National Identification Number
-    nin_validated = Column(Boolean, default=False)  # Whether NIN is verified
-    paystack_customer_code = Column(String, nullable=True)  # Paystack customer code
 
     students = relationship("Student", back_populates="parent")
 
@@ -87,11 +83,6 @@ class Student(Base):
     last_name = Column(String, nullable=False)
     parent_id = Column(Integer, ForeignKey("parents.id"), nullable=False)
     created_at = Column(DateTime, default=datetime.utcnow)
-
-    # NEW FIELDS - Add these
-    dva = Column(String, nullable=True)  # Dedicated Virtual Account Number
-    dva_customer_code = Column(String, nullable=True)  # Paystack customer code for this student
-    dva_account_name = Column(String, nullable=True)  # Account name (for display)
 
     parent = relationship("Parent", back_populates="students")
     enrollments = relationship("Enrollment", back_populates="student")
@@ -155,5 +146,10 @@ class Payment(Base):
     method = Column(String, nullable=False)
     remarks = Column(String, nullable=True)
     created_at = Column(DateTime, default=datetime.utcnow)
+
+    # NEW FIELDS FOR PAYSTACK
+    transaction_reference = Column(String, unique=True, nullable=True)
+    transaction_status = Column(String, default="pending")  # pending, success, failed, refunded
+    paystack_response = Column(JSON, nullable=True)  # Store full webhook payload
 
     enrollment = relationship("Enrollment", back_populates="payments")

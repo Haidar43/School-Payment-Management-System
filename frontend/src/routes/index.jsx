@@ -25,6 +25,8 @@ import ParentPaymentHistory from "../pages/parent/PaymentHistory";
 import ParentProfile from "../pages/parent/Profile";
 import Fees from '../pages/admin/Fees';
 import Enrollments from '../pages/admin/Enrollments';
+import PayNow from '../pages/parent/PayNow';
+import PaymentVerify from '../pages/parent/PaymentVerify';
 
 const router = createBrowserRouter([
   {
@@ -79,6 +81,7 @@ const router = createBrowserRouter([
               { path: "children/:id", element: <ChildDetails /> },
               { path: "payments", element: <ParentPaymentHistory /> },
               { path: "profile", element: <ParentProfile /> }
+
             ]
           }
         ]

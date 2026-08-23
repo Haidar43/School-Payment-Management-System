@@ -57,58 +57,6 @@ def create_parent(db: Session, parent_data: ParentCreate) -> Parent:
 
     return db_parent
 
-
-def validate_parent_nin(db: Session, parent_id: int) -> Optional[dict]:
-    """Validate a parent's NIN and create Paystack customer"""
-    parent = get_parent_by_id(db, parent_id)
-    if not parent:
-        return {"success": False, "message": "Parent not found"}
-
-    if not parent.nin:
-        return {"success": False, "message": "No NIN provided for this parent"}
-
-    # Validate NIN
-    validation_result = validate_nin(parent.nin)
-
-    if not validation_result.get("success"):
-        return {
-            "success": False,
-            "message": validation_result.get("message", "NIN validation failed")
-        }
-
-    # NIN is valid - update parent
-    parent.nin_validated = True
-
-    # Create Paystack customer if not already created
-    if not parent.paystack_customer_code:
-        customer_result = create_customer(
-            first_name=parent.first_name,
-            last_name=parent.last_name,
-            phone=parent.phone,
-            email=parent.email
-        )
-
-        if customer_result.get("success"):
-            parent.paystack_customer_code = customer_result.get("customer_code")
-        else:
-            return {
-                "success": False,
-                "message": customer_result.get("message", "Failed to create customer")
-            }
-
-    db.commit()
-    db.refresh(parent)
-
-    return {
-        "success": True,
-        "message": "NIN validated successfully",
-        "data": {
-            "nin_validated": parent.nin_validated,
-            "paystack_customer_code": parent.paystack_customer_code
-        }
-    }
-
-
 # ============ READ ============
 
 def get_parent_by_phone(db: Session, phone: str) -> Optional[Parent]:

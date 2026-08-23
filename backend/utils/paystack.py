@@ -10,7 +10,7 @@ load_dotenv()
 PAYSTACK_SECRET_KEY = os.getenv("PAYSTACK_SECRET_KEY", "sk_test_xxxxx")
 PAYSTACK_PUBLIC_KEY = os.getenv("PAYSTACK_PUBLIC_KEY", "pk_test_xxxxx")
 PAYSTACK_BASE_URL = "https://api.paystack.co"
-APP_ENV = os.getenv("APP_ENV", "development")  # development, test, production
+APP_ENV = os.getenv("APP_ENV", "development")
 
 
 # Headers for Paystack API calls
@@ -22,90 +22,32 @@ def get_headers():
 
 
 # ============================================================
-# NIN VALIDATION (SKIP IN TEST/DEV MODE)
+# TRANSACTION INITIALIZATION
 # ============================================================
 
-def validate_nin(nin: str) -> Dict[str, Any]:
-    """
-    Validate a NIN (National Identification Number) using Paystack API.
-    SKIP in test/development mode - always returns success.
-    Only validates in production mode.
-    """
-    # In test/development mode, skip validation - assume valid
-    if APP_ENV == "development" or APP_ENV == "test":
-        return {
-            "success": True,
-            "message": "Test mode - NIN validation bypassed",
-            "data": {
-                "nin": nin,
-                "first_name": "Test",
-                "last_name": "User",
-                "phone": "08000000000",
-                "dob": "2000-01-01"
-            }
-        }
-
-    # Production mode - call Paystack API
-    url = f"{PAYSTACK_BASE_URL}/identity/verify"
-
-    try:
-        response = requests.post(
-            url,
-            headers=get_headers(),
-            json={"nin": nin}
-        )
-        response.raise_for_status()
-        result = response.json()
-
-        if result.get("status") and result.get("data"):
-            return {
-                "success": True,
-                "message": "NIN validated successfully",
-                "data": result["data"]
-            }
-        else:
-            return {
-                "success": False,
-                "message": result.get("message", "NIN validation failed"),
-                "data": None
-            }
-
-    except requests.exceptions.RequestException as e:
-        return {
-            "success": False,
-            "message": f"Error validating NIN: {str(e)}",
-            "data": None
-        }
-
-
-# ============================================================
-# CUSTOMER MANAGEMENT (WORKS IN ALL MODES)
-# ============================================================
-
-def create_customer(
-        first_name: str,
-        last_name: str,
-        phone: str,
-        email: Optional[str] = None,
-        customer_code: Optional[str] = None
+def initialize_transaction(
+        amount: float,
+        email: str,
+        reference: str,
+        callback_url: str,
+        metadata: Optional[Dict] = None
 ) -> Dict[str, Any]:
     """
-    Create a customer in Paystack.
-    WORKS in all modes (test, dev, production).
+    Initialize a Paystack transaction.
+    Returns authorization URL for redirect.
     """
-    url = f"{PAYSTACK_BASE_URL}/customer"
+    url = f"{PAYSTACK_BASE_URL}/transaction/initialize"
+
+    # Amount in kobo (1 NGN = 100 kobo)
+    amount_kobo = int(amount * 100)
 
     payload = {
-        "first_name": first_name,
-        "last_name": last_name,
-        "phone": phone,
+        "amount": amount_kobo,
+        "email": email,
+        "reference": reference,
+        "callback_url": callback_url,
+        "metadata": metadata or {}
     }
-
-    if email:
-        payload["email"] = email
-
-    if customer_code:
-        payload["customer_code"] = customer_code
 
     try:
         response = requests.post(
@@ -119,180 +61,94 @@ def create_customer(
         if result.get("status") and result.get("data"):
             return {
                 "success": True,
-                "message": "Customer created successfully",
+                "message": "Transaction initialized successfully",
                 "data": result["data"],
-                "customer_code": result["data"].get("customer_code")
+                "authorization_url": result["data"].get("authorization_url"),
+                "reference": result["data"].get("reference"),
+                "access_code": result["data"].get("access_code")
             }
         else:
             return {
                 "success": False,
-                "message": result.get("message", "Failed to create customer"),
+                "message": result.get("message", "Failed to initialize transaction"),
                 "data": None
             }
 
     except requests.exceptions.RequestException as e:
         return {
             "success": False,
-            "message": f"Error creating customer: {str(e)}",
+            "message": f"Error initializing transaction: {str(e)}",
             "data": None
         }
 
 
-def get_customer(customer_code: str) -> Dict[str, Any]:
+# ============================================================
+# TRANSACTION VERIFICATION
+# ============================================================
+
+def verify_transaction(reference: str) -> Dict[str, Any]:
     """
-    Get customer details from Paystack.
+    Verify a Paystack transaction by reference.
+    Called after redirect from Paystack.
     """
-    url = f"{PAYSTACK_BASE_URL}/customer/{customer_code}"
+    url = f"{PAYSTACK_BASE_URL}/transaction/verify/{reference}"
 
     try:
         response = requests.get(
             url,
             headers=get_headers()
-        )
-        response.raise_for_status()
-        result = response.json()
-
-        if result.get("status") and result.get("data"):
-            return {
-                "success": True,
-                "message": "Customer found",
-                "data": result["data"]
-            }
-        else:
-            return {
-                "success": False,
-                "message": result.get("message", "Customer not found"),
-                "data": None
-            }
-
-    except requests.exceptions.RequestException as e:
-        return {
-            "success": False,
-            "message": f"Error fetching customer: {str(e)}",
-            "data": None
-        }
-
-
-# ============================================================
-# DEDICATED VIRTUAL ACCOUNT (DVA) - WORKS IN ALL MODES
-# ============================================================
-
-def create_dedicated_virtual_account(
-        customer_code: str,
-        account_name: Optional[str] = None,
-        preferred_bank: Optional[str] = None
-) -> Dict[str, Any]:
-    """
-    Create a dedicated virtual account for a customer.
-    WORKS in all modes (test, dev, production).
-    """
-    url = f"{PAYSTACK_BASE_URL}/dedicated_account"
-
-    payload = {
-        "customer": customer_code,
-    }
-
-    if account_name:
-        payload["account_name"] = account_name
-
-    if preferred_bank:
-        payload["preferred_bank"] = preferred_bank
-
-    try:
-        response = requests.post(
-            url,
-            headers=get_headers(),
-            json=payload
         )
         response.raise_for_status()
         result = response.json()
 
         if result.get("status") and result.get("data"):
             data = result["data"]
-            return {
-                "success": True,
-                "message": "Dedicated virtual account created successfully",
-                "data": data,
-                "account_number": data.get("account_number"),
-                "account_name": data.get("account_name"),
-                "bank_name": data.get("bank", {}).get("name") if data.get("bank") else None,
-                "bank_code": data.get("bank", {}).get("code") if data.get("bank") else None,
-                "customer_code": data.get("customer"),
-                "reference": data.get("reference")
-            }
+
+            # Determine transaction status
+            status = data.get("status")
+            if status == "success":
+                return {
+                    "success": True,
+                    "message": "Transaction verified successfully",
+                    "status": "success",
+                    "data": data,
+                    "amount": data.get("amount", 0) / 100,  # Convert from kobo
+                    "reference": data.get("reference"),
+                    "customer": data.get("customer", {}),
+                    "metadata": data.get("metadata", {})
+                }
+            elif status == "failed":
+                return {
+                    "success": True,
+                    "message": "Transaction failed",
+                    "status": "failed",
+                    "data": data,
+                    "failure_reason": data.get("gateway_response", "Unknown failure")
+                }
+            else:
+                return {
+                    "success": True,
+                    "message": f"Transaction status: {status}",
+                    "status": status,
+                    "data": data
+                }
         else:
             return {
                 "success": False,
-                "message": result.get("message", "Failed to create dedicated virtual account"),
+                "message": result.get("message", "Failed to verify transaction"),
                 "data": None
             }
 
     except requests.exceptions.RequestException as e:
         return {
             "success": False,
-            "message": f"Error creating dedicated virtual account: {str(e)}",
+            "message": f"Error verifying transaction: {str(e)}",
             "data": None
         }
-
-
-def get_dedicated_virtual_account(account_number: str) -> Dict[str, Any]:
-    """
-    Get details of a dedicated virtual account.
-    """
-    url = f"{PAYSTACK_BASE_URL}/dedicated_account/{account_number}"
-
-    try:
-        response = requests.get(
-            url,
-            headers=get_headers()
-        )
-        response.raise_for_status()
-        result = response.json()
-
-        if result.get("status") and result.get("data"):
-            return {
-                "success": True,
-                "message": "Dedicated virtual account found",
-                "data": result["data"]
-            }
-        else:
-            return {
-                "success": False,
-                "message": result.get("message", "Dedicated virtual account not found"),
-                "data": None
-            }
-
-    except requests.exceptions.RequestException as e:
-        return {
-            "success": False,
-            "message": f"Error fetching dedicated virtual account: {str(e)}",
-            "data": None
-        }
-
-
-def assign_dva_to_student(
-        parent_customer_code: str,
-        student_name: str,
-        student_admission: str
-) -> Dict[str, Any]:
-    """
-    Assign a dedicated virtual account to a student.
-    Uses parent's customer code and student's name for account naming.
-    """
-    # Account name format: StudentName - Admission
-    account_name = f"{student_name} - {student_admission}"
-
-    # Create DVA for the student
-    result = create_dedicated_virtual_account(
-        customer_code=parent_customer_code,
-        account_name=account_name
-    )
-
-    return result
 
 
 # ============================================================
-# WEBHOOK VERIFICATION
+# WEBHOOK SIGNATURE VERIFICATION
 # ============================================================
 
 def verify_webhook_signature(payload: bytes, signature: str) -> bool:
@@ -310,7 +166,18 @@ def verify_webhook_signature(payload: bytes, signature: str) -> bool:
 
     return hmac.compare_digest(expected_signature, signature)
 
+
 # ============================================================
-# NO TEST GENERATOR - We use real Paystack API always
+# GENERATE UNIQUE REFERENCE
 # ============================================================
-# Removed generate_test_dva() - we always call real API
+
+def generate_payment_reference(student_id: int) -> str:
+    """
+    Generate a unique payment reference.
+    Format: PAY-{student_id}-{timestamp}
+    """
+    from datetime import datetime
+    import time
+
+    timestamp = int(time.time() * 1000)  # milliseconds
+    return f"PAY-{student_id}-{timestamp}"

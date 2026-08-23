@@ -30,9 +30,6 @@ class ParentResponse(BaseModel):
     last_name: str
     phone: str
     email: Optional[str] = None
-    nin: Optional[str] = None  # ADD THIS
-    nin_validated: bool = False  # ADD THIS
-    paystack_customer_code: Optional[str] = None  # ADD THIS
     created_at: Optional[datetime] = None
 
     class Config:

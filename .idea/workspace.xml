@@ -5,23 +5,24 @@
   </component>
   <component name="ChangeListManager">
     <list default="true" id="339ea4c7-1625-46b2-a472-1db0fb24a813" name="Changes" comment="">
-      <change afterPath="$PROJECT_DIR$/backend/routes/webhook_routes.py" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/backend/utils/paystack.py" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/backend/routes/payment_routes.py" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/frontend/src/pages/parent/PayNow.jsx" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/frontend/src/pages/parent/PaymentVerify.jsx" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.env" beforeDir="false" afterPath="$PROJECT_DIR$/.env" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/backend/crud/parent.py" beforeDir="false" afterPath="$PROJECT_DIR$/backend/crud/parent.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/backend/database/models.py" beforeDir="false" afterPath="$PROJECT_DIR$/backend/database/models.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/backend/main.py" beforeDir="false" afterPath="$PROJECT_DIR$/backend/main.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/backend/routes/__init__.py" beforeDir="false" afterPath="$PROJECT_DIR$/backend/routes/__init__.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/backend/routes/admin_routes.py" beforeDir="false" afterPath="$PROJECT_DIR$/backend/routes/admin_routes.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/backend/routes/webhook_routes.py" beforeDir="false" afterPath="$PROJECT_DIR$/backend/routes/webhook_routes.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/backend/schemas/parent.py" beforeDir="false" afterPath="$PROJECT_DIR$/backend/schemas/parent.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/backend/schemas/payment.py" beforeDir="false" afterPath="$PROJECT_DIR$/backend/schemas/payment.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/backend/schemas/student.py" beforeDir="false" afterPath="$PROJECT_DIR$/backend/schemas/student.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/frontend/src/api/admin.js" beforeDir="false" afterPath="$PROJECT_DIR$/frontend/src/api/admin.js" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/frontend/src/components/parents/ParentForm.jsx" beforeDir="false" afterPath="$PROJECT_DIR$/frontend/src/components/parents/ParentForm.jsx" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/frontend/src/components/students/StudentForm.jsx" beforeDir="false" afterPath="$PROJECT_DIR$/frontend/src/components/students/StudentForm.jsx" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/backend/utils/paystack.py" beforeDir="false" afterPath="$PROJECT_DIR$/backend/utils/paystack.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/frontend/src/api/parent.js" beforeDir="false" afterPath="$PROJECT_DIR$/frontend/src/api/parent.js" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/frontend/src/pages/admin/ParentProfile.jsx" beforeDir="false" afterPath="$PROJECT_DIR$/frontend/src/pages/admin/ParentProfile.jsx" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/frontend/src/pages/admin/StudentProfile.jsx" beforeDir="false" afterPath="$PROJECT_DIR$/frontend/src/pages/admin/StudentProfile.jsx" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/school_payment.db" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/frontend/src/pages/parent/Children.jsx" beforeDir="false" afterPath="$PROJECT_DIR$/frontend/src/pages/parent/Children.jsx" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/frontend/src/pages/parent/Dashboard.jsx" beforeDir="false" afterPath="$PROJECT_DIR$/frontend/src/pages/parent/Dashboard.jsx" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/frontend/src/routes/index.jsx" beforeDir="false" afterPath="$PROJECT_DIR$/frontend/src/routes/index.jsx" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -29,13 +30,13 @@
     <option name="LAST_RESOLUTION" value="IGNORE" />
   </component>
   <component name="EmbeddingIndexingInfo">
-    <option name="cachedIndexableFilesCount" value="49" />
+    <option name="cachedIndexableFilesCount" value="15469" />
   </component>
   <component name="FileTemplateManagerImpl">
     <option name="RECENT_TEMPLATES">
       <list>
-        <option value="Python Unit Test" />
         <option value="Python Script" />
+        <option value="Python Unit Test" />
       </list>
     </option>
   </component>
@@ -57,18 +58,18 @@
     <option name="hideEmptyMiddlePackages" value="true" />
     <option name="showLibraryContents" value="true" />
   </component>
-  <component name="PropertiesComponent"><![CDATA[{
-  "keyToString": {
-    "ModuleVcsDetector.initialDetectionPerformed": "true",
-    "Python.academic.executor": "Run",
-    "Python.main.executor": "Run",
-    "RunOnceActivity.MCP Project settings loaded": "true",
-    "RunOnceActivity.ShowReadmeOnStart": "true",
-    "RunOnceActivity.TerminalTabsStorage.copyFrom.TerminalArrangementManager.252": "true",
-    "RunOnceActivity.git.unshallow": "true",
-    "git-widget-placeholder": "main"
+  <component name="PropertiesComponent">{
+  &quot;keyToString&quot;: {
+    &quot;ModuleVcsDetector.initialDetectionPerformed&quot;: &quot;true&quot;,
+    &quot;Python.academic.executor&quot;: &quot;Run&quot;,
+    &quot;Python.main.executor&quot;: &quot;Run&quot;,
+    &quot;RunOnceActivity.MCP Project settings loaded&quot;: &quot;true&quot;,
+    &quot;RunOnceActivity.ShowReadmeOnStart&quot;: &quot;true&quot;,
+    &quot;RunOnceActivity.TerminalTabsStorage.copyFrom.TerminalArrangementManager.252&quot;: &quot;true&quot;,
+    &quot;RunOnceActivity.git.unshallow&quot;: &quot;true&quot;,
+    &quot;git-widget-placeholder&quot;: &quot;main&quot;
   }
-}]]></component>
+}</component>
   <component name="RecentsManager">
     <key name="MoveFile.RECENT_KEYS">
       <recent name="C:\Users\user\PycharmProjects\School Management System\backend" />
